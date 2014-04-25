@@ -11,20 +11,20 @@ import (
 )
 
 func parseIndexFile(data []byte) (version int, entries int, err error) {
-  if data[0] != 'D' || data[1] != 'I' || data[2] != 'R' || data[3] != 'C' {
+	if data[0] != 'D' || data[1] != 'I' || data[2] != 'R' || data[3] != 'C' {
 		err = fmt.Errorf("Invalid signature")
+		return
+	}
+	fileChecksum := data[len(data)-sha1.Size:]
+	computedChecksum := sha1.Sum(data[0 : len(data)-sha1.Size])
+	if !bytes.Equal(fileChecksum, computedChecksum[:]) {
+		err = fmt.Errorf("Invalid checksum")
 		return
 	}
 	version = int(binary.BigEndian.Uint32(data[4:8]))
 	entries = int(binary.BigEndian.Uint32(data[8:12]))
-	fileChecksum := data[len(data)-sha1.Size:]
-	computedChecksum := sha1.Sum(data[0 : len(data)-sha1.Size])
-  if !bytes.Equal(fileChecksum, computedChecksum[:]) {
-		err = fmt.Errorf("Invalid checksum")
-	}
-  return
+	return
 }
-
 
 func mapIndexFile(filename string) (version int, entries int, data []byte, err error) {
 	file, err := os.Open(filename)
@@ -44,7 +44,7 @@ func mapIndexFile(filename string) (version int, entries int, data []byte, err e
 	}
 	flags := 0
 	data, err = syscall.Mmap(int(file.Fd()), 0, length, syscall.PROT_READ, flags)
-  version, entries, err = parseIndexFile(data)
+	version, entries, err = parseIndexFile(data)
 	return
 }
 
