@@ -10,7 +10,7 @@ import (
 	"syscall"
 )
 
-func parseIndexFile(data []byte) (version int, entries int, err error) {
+func parseIndexFile(data []byte) (version, entries uint32, err error) {
 	if data[0] != 'D' || data[1] != 'I' || data[2] != 'R' || data[3] != 'C' {
 		err = fmt.Errorf("Invalid signature")
 		return
@@ -21,12 +21,12 @@ func parseIndexFile(data []byte) (version int, entries int, err error) {
 		err = fmt.Errorf("Invalid checksum")
 		return
 	}
-	version = int(binary.BigEndian.Uint32(data[4:8]))
-	entries = int(binary.BigEndian.Uint32(data[8:12]))
+	version = binary.BigEndian.Uint32(data[4:8])
+	entries = binary.BigEndian.Uint32(data[8:12])
 	return
 }
 
-func mapIndexFile(filename string) (version int, entries int, data []byte, err error) {
+func mapIndexFile(filename string) (version, entries uint32, data []byte, err error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		err = fmt.Errorf("Error opening %s: %v", filename, err)

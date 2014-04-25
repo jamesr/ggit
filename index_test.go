@@ -8,7 +8,7 @@ import (
 
 type testCase struct {
 	data             []byte
-	version, entries int
+	version, entries uint32
 	hasError         bool
 }
 
