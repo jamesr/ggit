@@ -1,4 +1,4 @@
-package ggit
+package main
 
 import (
 	"bytes"
