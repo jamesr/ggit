@@ -8,9 +8,72 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"time"
 )
 
-func parseIndexFile(data []byte) (version, entries uint32, err error) {
+type entry struct {
+	ctime, mtime             time.Time
+	dev, ino, mode, uid, gid uint32
+	size                     uint32
+	hash                     [sha1.Size]byte
+	flags                    uint16
+	extendedFlags            uint16
+	path                     string
+}
+
+func parseTime(data []byte) time.Time {
+	ctimeSeconds := binary.BigEndian.Uint32(data[:4])
+	ctimeNanos := binary.BigEndian.Uint32(data[4:8])
+	return time.Unix(int64(ctimeSeconds), int64(ctimeNanos))
+}
+
+// parseEntry parses an entry from the file into an entry struct and returns the
+// length of the entry in bytes. data should be a slice pointing at the start of
+// the entry.
+// If the entry cannot be parsed, an error is returned and the other return
+// values are not meaningful.
+func parseEntry(data []byte) (e entry, length uint32, err error) {
+	const minEntryLen = 70
+	if len(data) < minEntryLen {
+		err = fmt.Errorf("Entry too short: %v, must be at least %v bytes",
+			len(data), minEntryLen)
+		return
+	}
+	consume := func(numBytes uint32) []byte {
+		oldData := data
+		data = data[numBytes:]
+		length += numBytes
+		return oldData
+	}
+	e.ctime = parseTime(consume(8))
+	e.mtime = parseTime(consume(8))
+	e.dev = binary.BigEndian.Uint32(consume(4))
+	e.ino = binary.BigEndian.Uint32(consume(4))
+	e.mode = binary.BigEndian.Uint32(consume(4))
+	e.uid = binary.BigEndian.Uint32(consume(4))
+	e.gid = binary.BigEndian.Uint32(consume(4))
+	e.size = binary.BigEndian.Uint32(consume(4))
+	copy(e.hash[:], consume(sha1.Size))
+	e.flags = binary.BigEndian.Uint16(consume(2))
+	// TODO(jamesr): If version >= 3, 16 bit extended flags
+	// data now points to the first byte of the path. In versions <= 3, this is a
+	// NUL-terminated string followed by 0-7 bytes of additional padding to round
+	// the length out to a multiple of 8 bytes.
+	// TODO(jamesr): If version >= 4, this is prefix-compressed relative to the
+	// previous path.
+	pathLength := uint32(0)
+	for data[pathLength] != 0 {
+		pathLength++
+	}
+	e.path = string(data[:pathLength])
+	length += pathLength
+	// There are between 1-8 NUL bytes at the end of each entry to pad it to an
+	// 8-byte boundary.
+	length = ((length / 8) + 1) * 8
+	return
+}
+
+func parseIndexFileHeader(data []byte) (version, entries uint32, err error) {
 	if data[0] != 'D' || data[1] != 'I' || data[2] != 'R' || data[3] != 'C' {
 		err = fmt.Errorf("Invalid signature")
 		return
@@ -44,7 +107,7 @@ func mapIndexFile(filename string) (version, entries uint32, data []byte, err er
 	}
 	flags := 0
 	data, err = syscall.Mmap(int(file.Fd()), 0, length, syscall.PROT_READ, flags)
-	version, entries, err = parseIndexFile(data)
+	version, entries, err = parseIndexFileHeader(data)
 	return
 }
 
