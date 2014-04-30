@@ -2,13 +2,11 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
-	"syscall"
 )
 
 func objectToPath(object string) string {
@@ -44,26 +42,9 @@ func objectSize(buf *bufio.Reader) (uint32, error) {
 	return uint32(size), err
 }
 
-func mapObjectFile(object string) ([]byte, error) {
+func openObjectFile(object string) (*os.File, error) {
 	path := objectToPath(object)
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	fileinfo, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	length := int(fileinfo.Size())
-	if length < 4 {
-		return nil, fmt.Errorf("File too short to be valid object: %d", length)
-	}
-	flags := 0
-	data, err := syscall.Mmap(int(file.Fd()), 0, length, syscall.PROT_READ, flags)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	return os.Open(path)
 }
 
 func parseHeader(br *bufio.Reader) (t string, s uint32, err error) {
@@ -76,13 +57,12 @@ func parseHeader(br *bufio.Reader) (t string, s uint32, err error) {
 }
 
 func parseTypeAndSize(object string) (string, uint32, error) {
-	data, err := mapObjectFile(object)
+	file, err := openObjectFile(object)
 	if err != nil {
 		return "", 0, err
 	}
-	defer syscall.Munmap(data)
-	buf := bytes.NewBuffer(data)
-	r, err := zlib.NewReader(buf)
+	defer file.Close()
+	r, err := zlib.NewReader(file)
 	if err != nil {
 		return "", 0, err
 	}
@@ -110,13 +90,12 @@ func dumpObjectSize(object string) error {
 }
 
 func dumpPrettyPrint(object string) error {
-	data, err := mapObjectFile(object)
+	file, err := openObjectFile(object)
 	if err != nil {
 		return err
 	}
-	defer syscall.Munmap(data)
-	buf := bytes.NewBuffer(data)
-	r, err := zlib.NewReader(buf)
+	defer file.Close()
+	r, err := zlib.NewReader(file)
 	if err != nil {
 		return err
 	}
