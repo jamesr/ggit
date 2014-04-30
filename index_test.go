@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/binary"
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -36,7 +35,6 @@ func TestParseEntry(t *testing.T) {
 	good.e.mode = 0x8000<<16 | 0x01a4
 	binary.BigEndian.PutUint32(good.data[24:28], good.e.mode)
 	good.e.uid = 7
-	fmt.Printf("2751529088 is %xd\n", 2751529088)
 	copy(good.data[28:32], []byte{0, 0, 0, 7})
 	good.e.gid = 8
 	copy(good.data[32:36], []byte{0, 0, 0, 8})
@@ -48,7 +46,7 @@ func TestParseEntry(t *testing.T) {
 	// high bit 1 for assume-valid, rest 0
 	good.e.flags = 0x80
 	copy(good.data[60:62], []byte{0, 0x80})
-	good.e.path = "foo/bar/file.txt"
+	good.e.path = []byte("foo/bar/file.txt")
 	copy(good.data[62:78], []byte(good.e.path))
 	// Rest of the slice is NUL, so no need to set terminator or padding.
 
@@ -59,7 +57,7 @@ func TestParseEntry(t *testing.T) {
 		length:   good.length,
 		hasError: false}
 	copy(goodLengthDivides8.data, good.data)
-	goodLengthDivides8.e.path += "2"
+	goodLengthDivides8.e.path = []byte(string(good.e.path) + "2")
 	goodLengthDivides8.data[78] = '2'
 	goodLengthDivides8.length = 80
 

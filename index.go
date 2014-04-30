@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"os"
 	"syscall"
@@ -18,7 +17,7 @@ type entry struct {
 	hash                     [sha1.Size]byte
 	flags                    uint16
 	extendedFlags            uint16
-	path                     string
+	path                     []byte
 }
 
 func parseTime(data []byte) time.Time {
@@ -65,7 +64,7 @@ func parseEntry(data []byte) (e entry, length uint32, err error) {
 	for data[pathLength] != 0 {
 		pathLength++
 	}
-	e.path = string(data[:pathLength])
+	e.path = data[:pathLength]
 	length += pathLength
 	// There are between 1-8 NUL bytes at the end of each entry to pad it to an
 	// 8-byte boundary.
@@ -89,7 +88,46 @@ func parseIndexFileHeader(data []byte) (version, entries uint32, err error) {
 	return
 }
 
-func mapIndexFile(filename string) (version, entries uint32, data []byte, err error) {
+func parseEntries(data []byte, numEntries uint32) ([]entry, uint32, error) {
+	entries := make([]entry, numEntries)
+	entriesLen := uint32(0)
+	for i := 0; i < int(numEntries); i++ {
+		e, entryLen, err := parseEntry(data)
+		if err != nil {
+			return nil, 0, err
+		}
+		entries[i] = e
+		data = data[entryLen:]
+		entriesLen += entryLen
+	}
+	return entries, entriesLen, nil
+}
+
+type extension struct {
+	signature []byte
+	size      uint32
+}
+
+func parseExtensions(data []byte) ([]extension, error) {
+	extensions := make([]extension, 0)
+	for len(data) > 0 {
+		if len(data) < 8 {
+			return nil, fmt.Errorf("Not enough bytes for signature and size: %v", len(data))
+		}
+		e := extension{
+			signature: data[:4],
+			size:      binary.BigEndian.Uint32(data[4:8])}
+		if len(data) < 8+int(e.size) {
+			return nil, fmt.Errorf("Not enough bytes for extension data, expecting %v but only have %v",
+				e.size, len(data)-8)
+		}
+		data = data[8+e.size:]
+		extensions = append(extensions, e)
+	}
+	return extensions, nil
+}
+
+func mapIndexFile(filename string) (version uint32, entries []entry, extensions []extension, data []byte, err error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		err = fmt.Errorf("Error opening %s: %v", filename, err)
@@ -107,26 +145,20 @@ func mapIndexFile(filename string) (version, entries uint32, data []byte, err er
 	}
 	flags := 0
 	data, err = syscall.Mmap(int(file.Fd()), 0, length, syscall.PROT_READ, flags)
-	version, entries, err = parseIndexFileHeader(data)
+	numEntries := uint32(0)
+	version, numEntries, err = parseIndexFileHeader(data)
+	if err != nil {
+		return
+	}
+	entries, entriesLen, entriesErr := parseEntries(data[12:], numEntries)
+	if entriesErr != nil {
+		err = fmt.Errorf("Error parsing entries: %v", entriesErr)
+		return
+	}
+	extensions, extensionsErr := parseExtensions(data[12+entriesLen : len(data)-sha1.Size])
+	if extensionsErr != nil {
+		err = fmt.Errorf("Error parsing extensions: %v", extensionsErr)
+		return
+	}
 	return
-}
-
-func main() {
-	flag.Parse()
-	if len(flag.Args()) < 1 {
-		fmt.Fprintf(os.Stderr, "Usage: index <path to index file>\n")
-		os.Exit(1)
-	}
-	filename := flag.Args()[0]
-	version, entries, data, err := mapIndexFile(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not parse index file: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("version %d entries %d\n", version, entries)
-	err = syscall.Munmap(data)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not unmap: %v\n", err)
-		os.Exit(1)
-	}
 }
