@@ -56,8 +56,7 @@ func catFile() {
 		}
 		file.Close()
 	case prettyPrint:
-		fmt.Fprintln(os.Stderr, "pretty print not implemented")
-		//dumpPrettyPrint(object)
+		err = dumpPrettyPrint(object)
 	default:
 		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
 		os.Exit(1)

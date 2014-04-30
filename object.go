@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"syscall"
@@ -105,5 +106,39 @@ func dumpObjectSize(object string) error {
 		return err
 	}
 	fmt.Println(s)
+	return nil
+}
+
+func dumpPrettyPrint(object string) error {
+	data, err := mapObjectFile(object)
+	if err != nil {
+		return err
+	}
+	defer syscall.Munmap(data)
+	buf := bytes.NewBuffer(data)
+	r, err := zlib.NewReader(buf)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	br := bufio.NewReader(r)
+	t, _, err := parseHeader(br)
+	if err != nil {
+		return err
+	}
+	if t == "tree" {
+		return fmt.Errorf("tree not supported, should do git ls-tree")
+	}
+	for {
+		b := make([]byte, 4096)
+		n, err := br.Read(b)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(b[:n]))
+	}
 	return nil
 }
