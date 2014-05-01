@@ -38,20 +38,11 @@ func objectSize(buf *bufio.Reader) (uint32, error) {
 	return uint32(size), err
 }
 
-func nameToPath(object string) string {
-	return ".git/objects/" + object[:2] + "/" + object[2:]
-}
-
-func openObjectFile(name string) (*os.File, error) {
-	path := nameToPath(name)
-	return os.Open(path)
-}
-
 type object struct {
 	objectType string
 	size       uint32
 	file       *os.File
-	reader     io.Reader
+	reader     *bufio.Reader
 }
 
 func (o object) Close() {
@@ -70,8 +61,17 @@ func parseObject(r io.Reader) (object, error) {
 	return object{objectType: t, size: s, file: nil, reader: br}, nil
 }
 
-func parseObjectFile(path string) (object, error) {
-	file, err := openObjectFile(path)
+func nameToPath(object string) string {
+	return ".git/objects/" + object[:2] + "/" + object[2:]
+}
+
+func openObjectFile(name string) (*os.File, error) {
+	path := nameToPath(name)
+	return os.Open(path)
+}
+
+var parseObjectFile = func(name string) (object, error) {
+	file, err := openObjectFile(name)
 	if err != nil {
 		return object{}, err
 	}
@@ -116,7 +116,6 @@ func dumpPrettyPrint(name string) error {
 	if o.objectType == "tree" {
 		return fmt.Errorf("tree not supported, should do git ls-tree")
 	}
-	fmt.Print(o.reader)
 	o.Close()
 	return nil
 }
