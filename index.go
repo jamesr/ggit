@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+func parseTime(data []byte) time.Time {
+	ctimeSeconds := binary.BigEndian.Uint32(data[:4])
+	ctimeNanos := binary.BigEndian.Uint32(data[4:8])
+	return time.Unix(int64(ctimeSeconds), int64(ctimeNanos))
+}
+
 type entry struct {
 	ctime, mtime             time.Time
 	dev, ino, mode, uid, gid uint32
@@ -20,10 +26,15 @@ type entry struct {
 	path                     []byte
 }
 
-func parseTime(data []byte) time.Time {
-	ctimeSeconds := binary.BigEndian.Uint32(data[:4])
-	ctimeNanos := binary.BigEndian.Uint32(data[4:8])
-	return time.Unix(int64(ctimeSeconds), int64(ctimeNanos))
+func (e entry) String() string {
+	const layout = "Jan 2 15:04"
+	s := fmt.Sprintf("ctime %s mtime %s ", e.ctime.Format(layout), e.mtime.Format(layout))
+	s += fmt.Sprintf("dev %d ino %d mode %o uid %d gid %d size %d ", e.dev, e.ino, e.mode, e.uid, e.gid, e.size)
+	s += fmt.Sprintf("sha1 %x ", e.hash)
+	s += fmt.Sprintf("flags v: %d extended: %d stage: %d name length %d ", e.flags>>15, e.flags&0x4000>>14, e.flags&0x3000>>12, e.flags&0x0fff)
+	s += fmt.Sprintf("extended flags: %d ", e.extendedFlags)
+	s += fmt.Sprintf("path: %s", string(e.path))
+	return s
 }
 
 // parseEntry parses an entry from the file into an entry struct and returns the
