@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"syscall"
@@ -27,66 +26,6 @@ func dumpIndex() {
 		fmt.Fprintf(os.Stderr, "Could not unmap: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func catFile() {
-	fs := flag.NewFlagSet("", flag.ExitOnError)
-	var typeOnly, sizeOnly, existsOnly, prettyPrint bool
-	fs.BoolVar(&typeOnly, "t", false, "")
-	fs.BoolVar(&sizeOnly, "s", false, "")
-	fs.BoolVar(&existsOnly, "e", false, "")
-	fs.BoolVar(&prettyPrint, "p", false, "")
-	fs.Parse(os.Args[2:])
-	name := fs.Arg(fs.NArg() - 1)
-	if len(name) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
-		os.Exit(1)
-	}
-	err := error(nil)
-	switch {
-	case typeOnly:
-		err = dumpObjectType(name)
-	case sizeOnly:
-		err = dumpObjectSize(name)
-	case existsOnly:
-		path := nameToPath(name)
-		file, err := os.Open(path)
-		if err != nil {
-			os.Exit(1)
-		}
-		file.Close()
-	case prettyPrint:
-		err = dumpPrettyPrint(name)
-	default:
-		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
-		os.Exit(1)
-	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-func lsTree() {
-	fs := flag.NewFlagSet("", flag.ExitOnError)
-	fs.Parse(os.Args[2:])
-	treeish := fs.Arg(fs.NArg() - 1)
-	if len(treeish) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: git ls-file <tree-ish>")
-		os.Exit(1)
-	}
-	o, err := parseObjectFile(treeish)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading tree-ish %s: %v\n", treeish, err)
-		os.Exit(1)
-	}
-	defer o.Close()
-	s, err := prettyPrintTree(o)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error processing tree-ish %s: %v\n", treeish, err)
-		os.Exit(1)
-	}
-	fmt.Println(s)
 }
 
 func main() {

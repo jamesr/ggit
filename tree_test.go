@@ -13,25 +13,6 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
-func fakeParseObjectFile(name string) (object, error) {
-	objectToType := map[string]string{
-		"8baef1b4abc478178b004d62031cf7fe6db6f903": "blob",
-		"40c5db63e2833f21092ffb06a26209df534e91c9": "tree",
-		"e69de29bb2d1d6434b8b29ae775ad8c2e48c5391": "blob",
-		"f2ba8f84ab5c1bce84a7b441cb1959cfc7093b7f": "blob",
-	}
-	t := objectToType[name]
-	if t == "" {
-		return object{}, fmt.Errorf("no such object %s", name)
-	}
-	return object{
-		objectType: t,
-		size:       1,
-		file:       nil,
-		reader:     nil,
-	}, nil
-}
-
 func TestLsTree(t *testing.T) {
 	treeBytes := []byte("tree 131\x00" +
 		"100644 abc.txt\x00\x8b\xae\xf1\xb4\xab\xc4x\x17\x8b\x00Mb\x03\x1c\xf7\xfem\xb6\xf9\x03" +
@@ -48,7 +29,24 @@ func TestLsTree(t *testing.T) {
 	b := bytes.NewBuffer(treeBytes)
 
 	origParseObjectFile := parseObjectFile
-	parseObjectFile = fakeParseObjectFile
+	parseObjectFile = func(name string) (object, error) {
+		objectToType := map[string]string{
+			"8baef1b4abc478178b004d62031cf7fe6db6f903": "blob",
+			"40c5db63e2833f21092ffb06a26209df534e91c9": "tree",
+			"e69de29bb2d1d6434b8b29ae775ad8c2e48c5391": "blob",
+			"f2ba8f84ab5c1bce84a7b441cb1959cfc7093b7f": "blob",
+		}
+		t := objectToType[name]
+		if t == "" {
+			return object{}, fmt.Errorf("no such object %s", name)
+		}
+		return object{
+			objectType: t,
+			size:       1,
+			file:       nil,
+			reader:     nil,
+		}, nil
+	}
 	defer func() { parseObjectFile = origParseObjectFile }()
 
 	tree, err := parseObject(nopCloser{b})

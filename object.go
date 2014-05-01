@@ -88,34 +88,3 @@ var parseObjectFile = func(name string) (object, error) {
 	o.file = file
 	return o, nil
 }
-
-func dumpObjectType(name string) error {
-	o, err := parseObjectFile(name)
-	if err != nil {
-		return err
-	}
-	fmt.Println(o.objectType)
-	o.Close()
-	return nil
-}
-
-func dumpObjectSize(name string) error {
-	o, err := parseObjectFile(name)
-	if err != nil {
-		return err
-	}
-	fmt.Println(o.size)
-	return nil
-}
-
-func dumpPrettyPrint(name string) error {
-	o, err := parseObjectFile(name)
-	if err != nil {
-		return err
-	}
-	if o.objectType == "tree" {
-		return fmt.Errorf("tree not supported, should do git ls-tree")
-	}
-	o.Close()
-	return nil
-}
