@@ -51,17 +51,23 @@ type object struct {
 	objectType string
 	size       uint32
 	file       *os.File
-	reader     io.ReadCloser
+	reader     io.Reader
 }
 
-func parseObject(f *os.File, r io.ReadCloser) (object, error) {
+func (o object) Close() {
+	if o.file != nil {
+		o.file.Close()
+	}
+}
+
+func parseObject(r io.Reader) (object, error) {
 	br := bufio.NewReader(r)
 	t, err := objectType(br)
 	if err != nil {
 		return object{}, err
 	}
 	s, err := objectSize(br)
-	return object{objectType: t, size: s, file: f, reader: r}, nil
+	return object{objectType: t, size: s, file: nil, reader: br}, nil
 }
 
 func parseObjectFile(path string) (object, error) {
@@ -74,7 +80,13 @@ func parseObjectFile(path string) (object, error) {
 		file.Close()
 		return object{}, err
 	}
-	return parseObject(file, r)
+	o, err := parseObject(r)
+	if err != nil {
+		file.Close()
+		return object{}, err
+	}
+	o.file = file
+	return o, nil
 }
 
 func dumpObjectType(name string) error {
@@ -83,8 +95,7 @@ func dumpObjectType(name string) error {
 		return err
 	}
 	fmt.Println(o.objectType)
-	o.reader.Close()
-	o.file.Close()
+	o.Close()
 	return nil
 }
 
@@ -106,7 +117,6 @@ func dumpPrettyPrint(name string) error {
 		return fmt.Errorf("tree not supported, should do git ls-tree")
 	}
 	fmt.Print(o.reader)
-	o.reader.Close()
-	o.file.Close()
+	o.Close()
 	return nil
 }
