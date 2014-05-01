@@ -37,26 +37,26 @@ func catFile() {
 	fs.BoolVar(&existsOnly, "e", false, "")
 	fs.BoolVar(&prettyPrint, "p", false, "")
 	fs.Parse(os.Args[2:])
-	object := fs.Arg(fs.NArg() - 1)
-	if len(object) == 0 {
+	name := fs.Arg(fs.NArg() - 1)
+	if len(name) == 0 {
 		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
 		os.Exit(1)
 	}
 	err := error(nil)
 	switch {
 	case typeOnly:
-		err = dumpObjectType(object)
+		err = dumpObjectType(name)
 	case sizeOnly:
-		err = dumpObjectSize(object)
+		err = dumpObjectSize(name)
 	case existsOnly:
-		path := objectToPath(object)
+		path := nameToPath(name)
 		file, err := os.Open(path)
 		if err != nil {
 			os.Exit(1)
 		}
 		file.Close()
 	case prettyPrint:
-		err = dumpPrettyPrint(object)
+		err = dumpPrettyPrint(name)
 	default:
 		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
 		os.Exit(1)

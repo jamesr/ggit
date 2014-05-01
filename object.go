@@ -9,10 +9,6 @@ import (
 	"strconv"
 )
 
-func objectToPath(object string) string {
-	return ".git/objects/" + object[:2] + "/" + object[2:]
-}
-
 func objectType(buf *bufio.Reader) (string, error) {
 	types := []string{"", // OBJ_NONE
 		"commit", // OBJ_COMMIT
@@ -42,82 +38,75 @@ func objectSize(buf *bufio.Reader) (uint32, error) {
 	return uint32(size), err
 }
 
-func openObjectFile(object string) (*os.File, error) {
-	path := objectToPath(object)
+func nameToPath(object string) string {
+	return ".git/objects/" + object[:2] + "/" + object[2:]
+}
+
+func openObjectFile(name string) (*os.File, error) {
+	path := nameToPath(name)
 	return os.Open(path)
 }
 
-func parseHeader(br *bufio.Reader) (t string, s uint32, err error) {
-	t, err = objectType(br)
-	if err != nil {
-		return
-	}
-	s, err = objectSize(br)
-	return
+type object struct {
+	objectType string
+	size       uint32
+	file       *os.File
+	reader     io.ReadCloser
 }
 
-func parseTypeAndSize(object string) (string, uint32, error) {
-	file, err := openObjectFile(object)
+func parseObject(f *os.File, r io.ReadCloser) (object, error) {
+	br := bufio.NewReader(r)
+	t, err := objectType(br)
 	if err != nil {
-		return "", 0, err
+		return object{}, err
 	}
-	defer file.Close()
+	s, err := objectSize(br)
+	return object{objectType: t, size: s, file: f, reader: r}, nil
+}
+
+func parseObjectFile(path string) (object, error) {
+	file, err := openObjectFile(path)
+	if err != nil {
+		return object{}, err
+	}
 	r, err := zlib.NewReader(file)
 	if err != nil {
-		return "", 0, err
+		file.Close()
+		return object{}, err
 	}
-	defer r.Close()
-	br := bufio.NewReader(r)
-	return parseHeader(br)
+	return parseObject(file, r)
 }
 
-func dumpObjectType(object string) error {
-	t, _, err := parseTypeAndSize(object)
+func dumpObjectType(name string) error {
+	o, err := parseObjectFile(name)
 	if err != nil {
 		return err
 	}
-	fmt.Println(t)
+	fmt.Println(o.objectType)
+	o.reader.Close()
+	o.file.Close()
 	return nil
 }
 
-func dumpObjectSize(object string) error {
-	_, s, err := parseTypeAndSize(object)
+func dumpObjectSize(name string) error {
+	o, err := parseObjectFile(name)
 	if err != nil {
 		return err
 	}
-	fmt.Println(s)
+	fmt.Println(o.size)
 	return nil
 }
 
-func dumpPrettyPrint(object string) error {
-	file, err := openObjectFile(object)
+func dumpPrettyPrint(name string) error {
+	o, err := parseObjectFile(name)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	r, err := zlib.NewReader(file)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	br := bufio.NewReader(r)
-	t, _, err := parseHeader(br)
-	if err != nil {
-		return err
-	}
-	if t == "tree" {
+	if o.objectType == "tree" {
 		return fmt.Errorf("tree not supported, should do git ls-tree")
 	}
-	for {
-		b := make([]byte, 4096)
-		n, err := br.Read(b)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		fmt.Print(string(b[:n]))
-	}
+	fmt.Print(o.reader)
+	o.reader.Close()
+	o.file.Close()
 	return nil
 }
