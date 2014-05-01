@@ -30,7 +30,7 @@ func dumpIndex() {
 }
 
 func catFile() {
-	fs := flag.NewFlagSet("hmm", flag.ExitOnError)
+	fs := flag.NewFlagSet("", flag.ExitOnError)
 	var typeOnly, sizeOnly, existsOnly, prettyPrint bool
 	fs.BoolVar(&typeOnly, "t", false, "")
 	fs.BoolVar(&sizeOnly, "s", false, "")
@@ -67,6 +67,28 @@ func catFile() {
 	}
 }
 
+func lsTree() {
+	fs := flag.NewFlagSet("", flag.ExitOnError)
+	fs.Parse(os.Args[2:])
+	treeish := fs.Arg(fs.NArg() - 1)
+	if len(treeish) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: git ls-file <tree-ish>")
+		os.Exit(1)
+	}
+	o, err := parseObjectFile(treeish)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error reading tree-ish %s: %v\n", treeish, err)
+		os.Exit(1)
+	}
+	defer o.Close()
+	s, err := prettyPrintTree(o)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error processing tree-ish %s: %v\n", treeish, err)
+		os.Exit(1)
+	}
+	fmt.Println(s)
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "Usage: ggit <command>")
@@ -78,6 +100,8 @@ func main() {
 		dumpIndex()
 	case cmd == "cat-file":
 		catFile()
+	case cmd == "ls-tree":
+		lsTree()
 	default:
 		fmt.Fprintln(os.Stderr, "Unknown command:", cmd)
 	}
