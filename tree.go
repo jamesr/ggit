@@ -17,7 +17,7 @@ func parseTreeEntries(tree object) ([]treeEntry, error) {
 		entry := treeEntry{}
 		r := tree.reader
 		mode, err := r.ReadString(' ')
-		if err == io.EOF || mode == "" {
+		if err == io.EOF {
 			break
 		}
 		if err != nil {

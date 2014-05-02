@@ -3,15 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"testing"
 )
-
-type nopCloser struct {
-	io.Reader
-}
-
-func (nopCloser) Close() error { return nil }
 
 func TestLsTree(t *testing.T) {
 	treeBytes := []byte("tree 131\x00" +
