@@ -80,39 +80,62 @@ func (c commit) String() string {
 	return s
 }
 
-func showCommit(commitObject object) (string, error) {
-	r := commitObject.reader
+func parseCommitObject(o object) (commit, error) {
 	c := commit{}
-	err := error(nil)
 	c.hash = "919b32c0b3cdb2b80ed7daa741b1fe88176b4264" // TODO: CHEAT!
+	err := error(nil)
+	r := o.reader
 	c.tree, err = parseHashLine(r, "tree")
 	if err != nil {
-		return "", err
+		return commit{}, err
 	}
 	c.parent, err = parseHashLine(r, "parent")
 	if err != nil {
-		return "", err
+		return commit{}, err
 	}
 
 	c.author, c.authorEmail, c.zone, c.date, err = parsePersonLine(r, "author")
 	if err != nil {
-		return "", err
+		return commit{}, err
 	}
 	c.committer, c.committerEmail, _, _, err = parsePersonLine(r, "committer")
 	if err != nil {
-		return "", err
+		return commit{}, err
 	}
 	nl, err := r.ReadByte()
 	if err != nil {
-		return "", err
+		return commit{}, err
 	}
 	if nl != '\n' {
-		return "", fmt.Errorf("expected another newline")
+		return commit{}, err
 	}
 	c.message, err = r.ReadString(0)
 	if err != nil && err != io.EOF {
+		return commit{}, err
+	}
+	return c, nil
+}
+
+func readCommit(hash string) (commit, error) {
+	object, err := parseObjectFile(hash)
+	if err != nil {
+		return commit{}, err
+	}
+	if object.objectType != "commit" {
+		return commit{}, fmt.Errorf("object %s has bad type: %s", hash, object.objectType)
+	}
+	c, err := parseCommitObject(object)
+	if err != nil {
+		return commit{}, err
+	}
+	c.hash = hash
+	return c, nil
+}
+
+func showCommit(hash string) (string, error) {
+	c, err := readCommit(hash)
+	if err != nil {
 		return "", err
 	}
-
 	return c.String(), nil
 }
