@@ -47,7 +47,7 @@ func TestLsTree(t *testing.T) {
 		t.Errorf("error parsing object: %v\n", err)
 	}
 
-	actual, err := prettyPrintTree(tree)
+	actual, err := prettyPrintTree(tree, false, false, "")
 	if err != nil {
 		t.Error("error prettying tree: %v\n", err)
 	}

@@ -47,29 +47,35 @@ func parseTreeEntries(tree object) ([]treeEntry, error) {
 	return entries, nil
 }
 
-func prettyPrintTree(tree object, recurse bool, dir string) (string, error) {
+func prettyPrintTree(tree object, recurse, dirsOnly bool, dir string) (string, error) {
 	entries, err := parseTreeEntries(tree)
 	if err != nil {
 		return "", err
 	}
 	s := ""
-	for _, e := range entries {
+	add := func(line string) {
 		if len(s) != 0 {
 			s += "\n"
 		}
+		s += line
+	}
+	for _, e := range entries {
 		o, err := parseObjectFile(fmt.Sprintf("%x", e.hash))
 		if err != nil {
 			return "", fmt.Errorf("error on entry %v %x: %v", e, e.hash, err)
 		}
-		if recurse && o.objectType == "tree" {
-			fmt.Printf("should recurse into tree %x, dir %s\n", 5, e.name)
-			subTree, err := prettyPrintTree(o, recurse, e.name+"/")
+		isTree := o.objectType == "tree"
+		if (!recurse && !dirsOnly) || (dirsOnly && isTree) || (recurse && !isTree && !dirsOnly) {
+			add(fmt.Sprintf("%s %s %x\t%s%s", e.mode, o.objectType, e.hash, dir, e.name))
+		}
+		if recurse && isTree {
+			subTree, err := prettyPrintTree(o, recurse, dirsOnly, dir+e.name+"/")
 			if err != nil {
 				return "", err
 			}
-			s += subTree
-		} else {
-			s += fmt.Sprintf("%s %s %x\t%s%s", e.mode, o.objectType, e.hash, dir, e.name)
+			if len(subTree) > 0 {
+				add(subTree)
+			}
 		}
 	}
 	return s, nil

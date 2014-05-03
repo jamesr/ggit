@@ -31,7 +31,8 @@ func dumpPrettyPrint(name string) error {
 		return err
 	}
 	if o.objectType == "tree" {
-		dumpTree(name, false)
+		recurse, dirsOnly := false, false
+		dumpTree(name, recurse, dirsOnly)
 		return nil
 	}
 	o.Close()
