@@ -31,7 +31,7 @@ func dumpPrettyPrint(name string) error {
 		return err
 	}
 	if o.objectType == "tree" {
-		dumpTree(name)
+		dumpTree(name, false)
 		return nil
 	}
 	o.Close()

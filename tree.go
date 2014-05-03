@@ -47,7 +47,7 @@ func parseTreeEntries(tree object) ([]treeEntry, error) {
 	return entries, nil
 }
 
-func prettyPrintTree(tree object) (string, error) {
+func prettyPrintTree(tree object, recurse bool, dir string) (string, error) {
 	entries, err := parseTreeEntries(tree)
 	if err != nil {
 		return "", err
@@ -61,7 +61,16 @@ func prettyPrintTree(tree object) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("error on entry %v %x: %v", e, e.hash, err)
 		}
-		s += fmt.Sprintf("%s %s %x\t%s", e.mode, o.objectType, e.hash, e.name)
+		if recurse && o.objectType == "tree" {
+			fmt.Printf("should recurse into tree %x, dir %s\n", 5, e.name)
+			subTree, err := prettyPrintTree(o, recurse, e.name+"/")
+			if err != nil {
+				return "", err
+			}
+			s += subTree
+		} else {
+			s += fmt.Sprintf("%s %s %x\t%s%s", e.mode, o.objectType, e.hash, dir, e.name)
+		}
 	}
 	return s, nil
 }
