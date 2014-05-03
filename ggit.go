@@ -41,6 +41,8 @@ func main() {
 		catFile()
 	case cmd == "ls-tree":
 		lsTree()
+	case cmd == "ls-files":
+		lsFiles()
 	default:
 		fmt.Fprintln(os.Stderr, "Unknown command:", cmd)
 	}
