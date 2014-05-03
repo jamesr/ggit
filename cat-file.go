@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -30,14 +31,26 @@ func dumpPrettyPrint(name string) error {
 	if err != nil {
 		return err
 	}
+	defer o.Close()
 	if o.objectType == "tree" {
 		recurse, dirsOnly := false, false
 		dumpTree(name, recurse, dirsOnly)
 		return nil
 	}
-	o.Close()
+	b := make([]byte, 4096)
+	for {
+		n, err := o.reader.Read(b)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(b[:n]))
+	}
 	return nil
 }
+
 func catFile() {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	var typeOnly, sizeOnly, existsOnly, prettyPrint bool

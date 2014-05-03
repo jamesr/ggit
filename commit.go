@@ -12,12 +12,8 @@ import (
 
 var hashRe = regexp.MustCompile("^[a-z0-9]{40}$")
 
-func parseHashLine(r *bufio.Reader, leader string) (string, error) {
-	line, err := r.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	if len(line) != 42+len(leader) || line[:len(leader)+1] != leader+" " {
+func parseHashLine(line, leader string) (string, error) {
+	if len(line) != 42+len(leader) {
 		return "", fmt.Errorf("bad commit format: \"%s\"", line)
 	}
 	hash := line[len(leader)+1 : len(line)-1]
@@ -27,14 +23,10 @@ func parseHashLine(r *bufio.Reader, leader string) (string, error) {
 	return hash, nil
 }
 
-func parsePersonLine(r *bufio.Reader, whom string) (name, email, zone string, t time.Time, err error) {
-	line, err := r.ReadString('\n')
-	if err != nil {
-		return
-	}
+func parsePersonLine(line, whom string) (name, email, zone string, t time.Time, err error) {
 	s := strings.Split(line, " ")
 	if len(s) < 5 {
-		err = fmt.Errorf("bad format, insufficient parts for %s line", whom)
+		err = fmt.Errorf("bad format, insufficient parts for %s line in \"%s\"", whom, line)
 		return
 	}
 	if s[0] != whom {
@@ -80,35 +72,41 @@ func (c commit) String() string {
 	return s
 }
 
+func parseKnownFields(c *commit, r *bufio.Reader) error {
+	for {
+		line, err := r.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		switch {
+		case line == "\n":
+			return nil
+		case strings.HasPrefix(line, "tree "):
+			c.tree, err = parseHashLine(line, "tree")
+		case strings.HasPrefix(line, "parent "):
+			c.parent, err = parseHashLine(line, "parent")
+		case strings.HasPrefix(line, "author "):
+			c.author, c.authorEmail, c.zone, c.date, err = parsePersonLine(line, "author")
+		case strings.HasPrefix(line, "committer "):
+			c.committer, c.committerEmail, _, _, err = parsePersonLine(line, "committer")
+		default:
+			return fmt.Errorf("unknown line \"%s\"", line)
+		}
+		if err != nil {
+			return err
+		}
+	}
+}
+
 func parseCommitObject(o object) (commit, error) {
 	c := commit{}
-	c.hash = "919b32c0b3cdb2b80ed7daa741b1fe88176b4264" // TODO: CHEAT!
-	err := error(nil)
 	r := o.reader
-	c.tree, err = parseHashLine(r, "tree")
-	if err != nil {
-		return commit{}, err
-	}
-	c.parent, err = parseHashLine(r, "parent")
+
+	err := parseKnownFields(&c, r)
 	if err != nil {
 		return commit{}, err
 	}
 
-	c.author, c.authorEmail, c.zone, c.date, err = parsePersonLine(r, "author")
-	if err != nil {
-		return commit{}, err
-	}
-	c.committer, c.committerEmail, _, _, err = parsePersonLine(r, "committer")
-	if err != nil {
-		return commit{}, err
-	}
-	nl, err := r.ReadByte()
-	if err != nil {
-		return commit{}, err
-	}
-	if nl != '\n' {
-		return commit{}, err
-	}
 	c.message, err = r.ReadString(0)
 	if err != nil && err != io.EOF {
 		return commit{}, err

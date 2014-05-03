@@ -43,6 +43,8 @@ func main() {
 		lsTree()
 	case cmd == "ls-files":
 		lsFiles()
+	case cmd == "rev-list":
+		revList()
 	default:
 		fmt.Fprintln(os.Stderr, "Unknown command:", cmd)
 	}
