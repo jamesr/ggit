@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
+	"time"
 )
 
 func TestShowCommit(t *testing.T) {
@@ -64,5 +67,39 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 		if actual != expected[i] {
 			t.Errorf("expected \"%v\" got \"%v\" case %d", expected[i], actual, i)
 		}
+	}
+}
+
+func TestParseKnownFields(t *testing.T) {
+	str := `tree 1c5641428ab2aad75d9874abedb821fd9ad01205
+parent 8fe3ee67adcd2ee9372c7044fa311ce55eb285b4
+parent fe191fcaa58cb785c804465a0da9bcba9fd9e822
+author Junio C Hamano <gitster@pobox.com> 1398102789 -0700
+committer Junio C Hamano <gitster@pobox.com> 1398102789 -0700
+
+Merge git://bogomips.org/git-svn
+
+* git://bogomips.org/git-svn:
+  Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given`
+
+	br := bufio.NewReader(bytes.NewBuffer([]byte(str)))
+	c := commit{}
+	err := parseKnownFields(&c, br)
+	if err != nil {
+		t.Error(err)
+	}
+	expected := commit{
+		tree: "1c5641428ab2aad75d9874abedb821fd9ad01205",
+		parent: []string{"8fe3ee67adcd2ee9372c7044fa311ce55eb285b4",
+			"fe191fcaa58cb785c804465a0da9bcba9fd9e822"},
+		author:         "Junio C Hamano",
+		authorEmail:    "gitster@pobox.com",
+		committer:      "Junio C Hamano",
+		committerEmail: "gitster@pobox.com",
+		date:           time.Unix(1398102789, 0),
+		zone:           "-0700"}
+
+	if !reflect.DeepEqual(c, expected) {
+		t.Errorf("does not match %v", c)
 	}
 }

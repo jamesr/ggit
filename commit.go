@@ -50,7 +50,8 @@ func parsePersonLine(line, whom string) (name, email, zone string, t time.Time, 
 }
 
 type commit struct {
-	hash, tree, parent        string
+	hash, tree                string
+	parent                    []string
 	author, authorEmail       string
 	committer, committerEmail string
 	date                      time.Time
@@ -84,7 +85,10 @@ func parseKnownFields(c *commit, r *bufio.Reader) error {
 		case strings.HasPrefix(line, "tree "):
 			c.tree, err = parseHashLine(line, "tree")
 		case strings.HasPrefix(line, "parent "):
-			c.parent, err = parseHashLine(line, "parent")
+			parent, err := parseHashLine(line, "parent")
+			if err == nil {
+				c.parent = append(c.parent, parent)
+			}
 		case strings.HasPrefix(line, "author "):
 			c.author, c.authorEmail, c.zone, c.date, err = parsePersonLine(line, "author")
 		case strings.HasPrefix(line, "committer "):

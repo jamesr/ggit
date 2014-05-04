@@ -12,9 +12,8 @@ func printCommitChain(hash string) error {
 		return err
 	}
 	fmt.Println(hash)
-	fmt.Println(c)
-	if c.parent != "" {
-		printCommitChain(c.parent)
+	if len(c.parent) > 0 {
+		printCommitChain(c.parent[0])
 	}
 	return nil
 }
