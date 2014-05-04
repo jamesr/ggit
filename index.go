@@ -138,24 +138,28 @@ func parseExtensions(data []byte) ([]extension, error) {
 	return extensions, nil
 }
 
-func mapIndexFile(filename string) (version uint32, entries []entry, extensions []extension, data []byte, err error) {
-	file, err := os.Open(filename)
+var mmapFile = func(path string) ([]byte, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		err = fmt.Errorf("Error opening %s: %v", filename, err)
-		return
+		return nil, fmt.Errorf("Error opening %s: %v", path, err)
 	}
 	fileinfo, err := file.Stat()
 	if err != nil {
-		err = fmt.Errorf("Error statting %s: %v", filename, err)
-		return
+		return nil, fmt.Errorf("Error statting %s: %v", path, err)
 	}
 	length := int(fileinfo.Size())
 	if length < 12+sha1.Size { // 12 byte header at start, SHA-1 checksum at end.
-		err = fmt.Errorf("Index file too small, %d", length)
-		return
+		return nil, fmt.Errorf("Index file too small, %d", length)
 	}
 	flags := 0
-	data, err = syscall.Mmap(int(file.Fd()), 0, length, syscall.PROT_READ, flags)
+	return syscall.Mmap(int(file.Fd()), 0, length, syscall.PROT_READ, flags)
+}
+
+func mapIndexFile(filename string) (version uint32, entries []entry, extensions []extension, data []byte, err error) {
+	data, err = mmapFile(filename)
+	if err != nil {
+		return
+	}
 	numEntries := uint32(0)
 	version, numEntries, err = parseIndexFileHeader(data)
 	if err != nil {

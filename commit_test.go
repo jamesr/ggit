@@ -47,7 +47,11 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 			return object{}, fmt.Errorf("unknown name %s", name)
 		}
 		b := bytes.NewBuffer(commitBytes[idx])
-		return parseObject(b)
+		o, err := parseObject(b)
+		if err != nil {
+			return object{}, err
+		}
+		return *o, err
 	}
 	defer func() { parseObjectFile = origParseObjectFile }()
 

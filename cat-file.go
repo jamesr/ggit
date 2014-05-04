@@ -31,12 +31,18 @@ func dumpPrettyPrint(name string) error {
 	if err != nil {
 		return err
 	}
-	defer o.Close()
 	if o.objectType == "tree" {
 		recurse, dirsOnly := false, false
 		dumpTree(name, recurse, dirsOnly)
 		return nil
+	} else {
+		dumpPrettyPrintObject(o)
 	}
+	o.Close()
+	return nil
+}
+
+func dumpPrettyPrintObject(o object) error {
 	b := make([]byte, 4096)
 	for {
 		n, err := o.reader.Read(b)
