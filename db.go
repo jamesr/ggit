@@ -57,7 +57,7 @@ func (p *pack) findHash(hash []byte) *object {
 			}
 			o, err := p.p.extractObject(p.idx.offset(i))
 			if err != nil {
-				return nil
+				panic(err)
 			}
 			return &o
 		}
@@ -65,7 +65,7 @@ func (p *pack) findHash(hash []byte) *object {
 	return nil
 }
 
-var parsedPackFiles = []pack(nil) // nil means not yet checked, empty means no pack files
+var parsedPackFiles = []*pack(nil) // nil means not yet checked, empty means no pack files
 
 func findHash(hash []byte) (*object, error) {
 	if parsedPackFiles == nil {
@@ -85,7 +85,7 @@ func findHash(hash []byte) (*object, error) {
 					return nil, err
 				}
 				parsedPackFiles = append(parsedPackFiles,
-					pack{p: nil,
+					&pack{p: nil,
 						pFile:        nil,
 						baseFileName: n[:len(n)-len(".idx")],
 						idx:          idx,

@@ -10,6 +10,17 @@ import (
 	"fmt"
 )
 
+type packFile struct {
+	numObjects uint32
+	data       []byte // includes the header
+}
+
+type packIndexFile struct {
+	numEntries                       uint32
+	hashes, crc32s, smallByteOffsets []byte
+	data                             []byte
+}
+
 const (
 	OBJ_BAD    = -1
 	OBJ_NONE   = 0
@@ -24,9 +35,9 @@ const (
 	OBJ_MAX
 )
 
-func parsePackObjectHeader(data []byte) (byte, int, uint32, error) {
+func (p packFile) parseHeader(offset uint32) (byte, int, uint32, error) {
 	used := uint32(0)
-	c := data[used]
+	c := p.data[offset]
 	used++
 	t := (c >> 4) & 0x07
 
@@ -34,27 +45,31 @@ func parsePackObjectHeader(data []byte) (byte, int, uint32, error) {
 	shift := uint(4)
 
 	for (c & 0x80) != 0 {
-		if used >= uint32(len(data)) {
+		if used+offset >= uint32(len(p.data)) {
 			return 0, 0, 0, errors.New("bad object header")
 		}
-		c = data[used]
+		c = p.data[used+offset]
 		used++
 		size += int(c&0x7f) << shift
 		shift += 7
 	}
 
-	return t, size, used, nil
-}
-
-type packFile struct {
-	numObjects uint32
-	data       []byte // includes the header
-}
-
-type packIndexFile struct {
-	numEntries                       uint32
-	hashes, crc32s, smallByteOffsets []byte
-	data                             []byte
+	if t == OBJ_OFS_DELTA {
+		c := p.data[offset+uint32(used)]
+		used++
+		deltaOffset := uint32(c & 0x7f)
+		for (c & 0x80) != 0 {
+			deltaOffset++
+			c = p.data[offset+uint32(used)]
+			used++
+			deltaOffset = (deltaOffset << 7) + uint32(c&0x7f)
+		}
+		if deltaOffset > offset {
+			return 0, 0, 0, errors.New("bad object header delta offset")
+		}
+		return p.parseHeader(offset - deltaOffset)
+	}
+	return t, size, offset + used, nil
 }
 
 func parsePackFile(data []byte) (packFile, error) {
@@ -75,14 +90,14 @@ func parsePackFile(data []byte) (packFile, error) {
 }
 
 func (p packFile) extractObject(offset uint32) (object, error) {
-	t, size, used, err := parsePackObjectHeader(p.data[offset:])
+	t, size, offset, err := p.parseHeader(offset)
 	if err != nil {
 		return object{}, err
 	}
-	if t < OBJ_COMMIT && t > OBJ_BLOB {
+	if t < OBJ_COMMIT || t > OBJ_BLOB {
 		return object{}, fmt.Errorf("unsupported type %d", t)
 	}
-	br := bytes.NewReader(p.data[offset+uint32(used):])
+	br := bytes.NewReader(p.data[offset:])
 	zr, err := zlib.NewReader(br)
 	if err != nil {
 		return object{}, err
@@ -134,5 +149,9 @@ func (idx *packIndexFile) hash(i int) []byte {
 }
 
 func (idx *packIndexFile) offset(i int) uint32 {
-	return binary.BigEndian.Uint32(idx.smallByteOffsets[i*4 : (i+1)*4])
+	smallByteOffset := binary.BigEndian.Uint32(idx.smallByteOffsets[i*4 : (i+1)*4])
+	if (smallByteOffset & (1 << 31)) != 0 {
+		panic("do not support large byte offsets")
+	}
+	return smallByteOffset
 }

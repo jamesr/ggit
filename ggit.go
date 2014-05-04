@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"os"
+	"runtime/pprof"
 	"syscall"
 )
 
@@ -28,12 +31,24 @@ func dumpIndex() {
 	}
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func main() {
-	if len(os.Args) < 2 {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	if flag.NArg() < 2 {
 		fmt.Fprintln(os.Stderr, "Usage: ggit <command>")
 		os.Exit(1)
 	}
-	cmd := os.Args[1]
+	cmd := flag.Arg(0)
 	switch {
 	case cmd == "dump-index":
 		dumpIndex()
