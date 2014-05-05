@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strings"
 	"syscall"
@@ -56,7 +55,6 @@ func (p *pack) findHash(hash []byte) *object {
 					panic(err)
 				}
 			}
-			fmt.Println("extracting from index offset ", p.idx.offset(i))
 			o, err := p.p.extractObject(p.idx.offset(i))
 			if err != nil {
 				panic(err)

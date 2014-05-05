@@ -1,9 +1,53 @@
 package main
 
 import (
+	"bytes"
+	"compress/zlib"
 	"errors"
 	"fmt"
+	"io"
 )
+
+type compressedDeltaReader struct {
+	baseCompressed, deltaCompressed []byte
+	r                               io.Reader // Lazily set on first access
+}
+
+func (d *compressedDeltaReader) Read(b []byte) (int, error) {
+	if d.r == nil {
+		base, err := readAllBytes(d.baseCompressed)
+		if err != nil {
+			return 0, fmt.Errorf("error decompressing base: %v", err)
+		}
+		delta, err := readAllBytes(d.deltaCompressed)
+		if err != nil {
+			return 0, fmt.Errorf("error decompressing delta: %v", err)
+		}
+		patched, err := patchDelta(base, delta)
+		if err != nil {
+			return 0, fmt.Errorf("error applying delta: %v", err)
+		}
+		d.r = bytes.NewReader(patched)
+	}
+	return d.r.Read(b)
+}
+
+func readAllBytes(compressed []byte) ([]byte, error) {
+	r, err := zlib.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, 4096)
+	n := 0
+	dest := []byte(nil)
+	for ; err == nil; n, err = r.Read(buf) {
+		dest = append(dest, buf[:n]...)
+	}
+	if err != io.EOF {
+		return nil, err
+	}
+	return dest, nil
+}
 
 func deltaHeaderSize(delta []byte) (uint32, int) {
 	used := 0
