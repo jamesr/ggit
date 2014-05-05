@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 )
 
 type packFile struct {
@@ -36,6 +37,7 @@ const (
 )
 
 func (p packFile) parseHeader(offset uint32) (byte, int, uint32, error) {
+	fmt.Println("parsing header at offset ", offset)
 	used := uint32(0)
 	c := p.data[offset]
 	used++
@@ -53,23 +55,8 @@ func (p packFile) parseHeader(offset uint32) (byte, int, uint32, error) {
 		size += int(c&0x7f) << shift
 		shift += 7
 	}
-
-	if t == OBJ_OFS_DELTA {
-		c := p.data[offset+uint32(used)]
-		used++
-		deltaOffset := uint32(c & 0x7f)
-		for (c & 0x80) != 0 {
-			deltaOffset++
-			c = p.data[offset+uint32(used)]
-			used++
-			deltaOffset = (deltaOffset << 7) + uint32(c&0x7f)
-		}
-		if deltaOffset > offset {
-			return 0, 0, 0, errors.New("bad object header delta offset")
-		}
-		return p.parseHeader(offset - deltaOffset)
-	}
-	return t, size, offset + used, nil
+	fmt.Printf("type %d size %d offset %d used %d\n", t, size, offset, used)
+	return t, size, used, nil
 }
 
 func parsePackFile(data []byte) (packFile, error) {
@@ -90,14 +77,66 @@ func parsePackFile(data []byte) (packFile, error) {
 }
 
 func (p packFile) extractObject(offset uint32) (object, error) {
-	t, size, offset, err := p.parseHeader(offset)
+	t, size, used, err := p.parseHeader(offset)
+	fmt.Printf("extracting from offset %v type %v\n", offset, t)
 	if err != nil {
 		return object{}, err
 	}
+
+	if t == OBJ_OFS_DELTA {
+		c := p.data[offset+used]
+		used++
+		deltaOffset := uint32(c & 0x7f)
+		for (c & 0x80) != 0 {
+			deltaOffset++
+			c = p.data[offset+used]
+			used++
+			deltaOffset = (deltaOffset << 7) + uint32(c&0x7f)
+		}
+		if deltaOffset > offset {
+			return object{}, fmt.Errorf("bad object header delta offset %d %d", deltaOffset, offset)
+		}
+		// at this point, next size bytes are a delta against base
+		fmt.Printf("found delta of %d, new offset %d size %d\n", deltaOffset, offset-deltaOffset, size)
+		delta := p.data[offset+used : offset+used+uint32(size)]
+		deltaBytes := bytes.NewReader(delta)
+		zr, err := zlib.NewReader(deltaBytes)
+		buf := make([]byte, 4096)
+		n := 0
+		fmt.Println("decompressed delta data is:")
+		for ; err == nil; n, err = zr.Read(buf) {
+			for i := 0; i < n; i++ {
+				fmt.Printf("%x, ", buf[i])
+			}
+		}
+		if err != io.EOF {
+			panic(err)
+		}
+		fmt.Println()
+		t, size, used, err = p.parseHeader(offset - deltaOffset)
+		offset -= deltaOffset
+	}
+
 	if t < OBJ_COMMIT || t > OBJ_BLOB {
 		return object{}, fmt.Errorf("unsupported type %d", t)
 	}
-	br := bytes.NewReader(p.data[offset:])
+	{
+		br := bytes.NewReader(p.data[offset+used:])
+		zr, err := zlib.NewReader(br)
+		buf := make([]byte, 4096)
+		n := 0
+		fmt.Println("decompressed base data is:")
+		for ; err == nil; n, err = zr.Read(buf) {
+			for i := 0; i < n; i++ {
+				fmt.Printf("%x, ", buf[i])
+			}
+		}
+		if err != io.EOF {
+			panic(err)
+		}
+		fmt.Println()
+	}
+	br := bytes.NewReader(p.data[offset+used:])
 	zr, err := zlib.NewReader(br)
 	if err != nil {
 		return object{}, err

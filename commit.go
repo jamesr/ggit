@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -94,7 +95,8 @@ func parseKnownFields(c *commit, r *bufio.Reader) error {
 		case strings.HasPrefix(line, "committer "):
 			c.committer, c.committerEmail, _, _, err = parsePersonLine(line, "committer")
 		default:
-			return fmt.Errorf("unknown line \"%s\"", line)
+			//return fmt.Errorf("unknown line \"%s\"", line)
+			fmt.Fprintf(os.Stderr, "unknown line \"%s\"\n", line)
 		}
 		if err != nil {
 			return err
