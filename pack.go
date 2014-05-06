@@ -56,6 +56,8 @@ func (p packFile) parseHeader(offset uint32) (byte, int, uint32, error) {
 	return t, size, used, nil
 }
 
+var verifyChecksums = false
+
 func parsePackFile(data []byte) (packFile, error) {
 	if bytes.Compare(data[:4], []byte("PACK")) != 0 {
 		return packFile{}, fmt.Errorf("invalid signature %s", string(data[:4]))
@@ -64,9 +66,11 @@ func parsePackFile(data []byte) (packFile, error) {
 	if version != 2 {
 		return packFile{}, fmt.Errorf("unsupported version %d", 2)
 	}
-	checksum := sha1.Sum(data[:len(data)-sha1.Size])
-	if bytes.Compare(data[len(data)-sha1.Size:], checksum[:]) != 0 {
-		return packFile{}, errors.New("bad checksum")
+	if verifyChecksums {
+		checksum := sha1.Sum(data[:len(data)-sha1.Size])
+		if bytes.Compare(data[len(data)-sha1.Size:], checksum[:]) != 0 {
+			return packFile{}, errors.New("bad checksum")
+		}
 	}
 	numObjects := binary.BigEndian.Uint32(data[8:12])
 
@@ -95,7 +99,7 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		}
 		// at this point, next size bytes are a delta against base. store it for use in constructing the
 		// object's reader later on
-		deltasCompressed = append(deltasCompressed, p.data[offset+used:offset+used+uint32(size)])
+		deltasCompressed = append(deltasCompressed, p.data[offset+used:offset+used+uint32(size)+8]) // TODO: +8 is a hack, figure out
 		t, size, used, err = p.parseHeader(offset - deltaOffset)
 		offset -= deltaOffset
 	}

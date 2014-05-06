@@ -7,15 +7,17 @@ import (
 )
 
 func printCommitChain(hash string) error {
-	c, err := readCommit(hash)
-	if err != nil {
-		return err
+	for {
+		c, err := readCommit(hash)
+		if err != nil {
+			return err
+		}
+		fmt.Println(hash)
+		if len(c.parent) == 0 {
+			return nil
+		}
+		hash = c.parent[0]
 	}
-	fmt.Println(hash)
-	if len(c.parent) > 0 {
-		err = printCommitChain(c.parent[0])
-	}
-	return err
 }
 
 func revList() {
