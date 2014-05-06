@@ -9,27 +9,9 @@ import (
 )
 
 type compressedDeltaReader struct {
-	baseCompressed, deltaCompressed []byte
-	r                               io.Reader // Lazily set on first access
-}
-
-func (d *compressedDeltaReader) Read(b []byte) (int, error) {
-	if d.r == nil {
-		base, err := readAllBytes(d.baseCompressed)
-		if err != nil {
-			return 0, fmt.Errorf("error decompressing base: %v", err)
-		}
-		delta, err := readAllBytes(d.deltaCompressed)
-		if err != nil {
-			return 0, fmt.Errorf("error decompressing delta: %v", err)
-		}
-		patched, err := patchDelta(base, delta)
-		if err != nil {
-			return 0, fmt.Errorf("error applying delta: %v", err)
-		}
-		d.r = bytes.NewReader(patched)
-	}
-	return d.r.Read(b)
+	baseCompressed   []byte
+	deltasCompressed [][]byte
+	r                io.Reader // Lazily set on first access
 }
 
 func readAllBytes(compressed []byte) ([]byte, error) {
@@ -47,6 +29,28 @@ func readAllBytes(compressed []byte) ([]byte, error) {
 		return nil, err
 	}
 	return dest, nil
+}
+
+func (d *compressedDeltaReader) Read(b []byte) (int, error) {
+	if d.r == nil {
+		base, err := readAllBytes(d.baseCompressed)
+		if err != nil {
+			return 0, fmt.Errorf("error decompressing base: %v", err)
+		}
+		patched := base
+		for i := range d.deltasCompressed {
+			delta, err := readAllBytes(d.deltasCompressed[len(d.deltasCompressed)-i-1])
+			if err != nil {
+				return 0, fmt.Errorf("error decompressing delta: %v", err)
+			}
+			patched, err = patchDelta(patched, delta)
+			if err != nil {
+				return 0, fmt.Errorf("error applying delta: %v", err)
+			}
+		}
+		d.r = bytes.NewReader(patched)
+	}
+	return d.r.Read(b)
 }
 
 func deltaHeaderSize(delta []byte) (uint32, int) {

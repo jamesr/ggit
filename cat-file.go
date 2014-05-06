@@ -36,7 +36,7 @@ func dumpPrettyPrint(name string) error {
 		dumpTree(name, recurse, dirsOnly)
 		return nil
 	} else {
-		dumpPrettyPrintObject(o)
+		return dumpPrettyPrintObject(o)
 	}
 	o.Close()
 	return nil

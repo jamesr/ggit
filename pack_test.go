@@ -2,6 +2,63 @@ package main
 
 import "testing"
 
+func TestParseHeader(t *testing.T) {
+	type testcase struct {
+		b          []byte
+		objectType byte
+		size       int
+	}
+
+	cases := []testcase{
+		testcase{
+			b:          []byte{0xef, 0x01},
+			objectType: 6,
+			size:       31},
+		testcase{
+			b:          []byte{0x97, 0x1f},
+			objectType: 1,
+			size:       503},
+		testcase{
+			b:          []byte{0x9d, 0x12},
+			objectType: 1,
+			size:       301},
+		testcase{
+			b:          []byte{0x91, 0x21},
+			objectType: 1,
+			size:       529},
+		testcase{
+			b:          []byte{0xe8, 0x07},
+			objectType: 6,
+			size:       120},
+		testcase{
+			b:          []byte{0xe1, 0x02},
+			objectType: 6,
+			size:       33},
+		testcase{
+			b:          []byte{0xec, 0xd8, 0x02},
+			objectType: 6,
+			size:       5516},
+		testcase{
+			b:          []byte{0xa0, 0x8f, 0x07},
+			objectType: 2,
+			size:       14576}}
+
+	for i, c := range cases {
+		p := packFile{numObjects: 1, data: c.b}
+		objectType, size, _, err := p.parseHeader(0)
+		if err != nil {
+			t.Error(err)
+		}
+		if objectType != c.objectType {
+			t.Errorf("expected type %d, got %d on case %d", c.objectType,
+				objectType, i)
+		}
+		if size != c.size {
+			t.Errorf("expected size %d, got %d on case %d", c.size, size, i)
+		}
+	}
+}
+
 func TestParsePack(t *testing.T) {
 	p, err := parsePackFile(testPack)
 	if err != nil {

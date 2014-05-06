@@ -39,9 +39,9 @@ func (p packFile) parseHeader(offset uint32) (byte, int, uint32, error) {
 	used := uint32(0)
 	c := p.data[offset]
 	used++
-	t := (c >> 4) & 0x07
+	t := (c >> 4) & 7
 
-	size := int(c & 0x15)
+	size := int(c & 0x0f)
 	shift := uint(4)
 
 	for (c & 0x80) != 0 {
@@ -79,8 +79,8 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		return object{}, err
 	}
 
-	deltaCompressedBytes := []byte(nil)
-	if t == OBJ_OFS_DELTA {
+	deltasCompressed := [][]byte{}
+	for t == OBJ_OFS_DELTA {
 		c := p.data[offset+used]
 		used++
 		deltaOffset := uint32(c & 0x7f)
@@ -95,9 +95,7 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		}
 		// at this point, next size bytes are a delta against base. store it for use in constructing the
 		// object's reader later on
-		deltaCompressedBytes = p.data[offset+used : offset+used+uint32(size)]
-		// the offset points to the base object. in theory there could be multiple deltas, but we'll just
-		// error out for that case for now.
+		deltasCompressed = append(deltasCompressed, p.data[offset+used:offset+used+uint32(size)+50])
 		t, size, used, err = p.parseHeader(offset - deltaOffset)
 		offset -= deltaOffset
 	}
@@ -106,10 +104,10 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		return object{}, fmt.Errorf("unsupported type %d", t)
 	}
 	o := object{objectType: objectTypeStrings[t], size: uint32(size), file: nil}
-	if deltaCompressedBytes != nil {
+	if len(deltasCompressed) != 0 {
 		o.reader = bufio.NewReader(&compressedDeltaReader{
-			baseCompressed:  p.data[offset+used : offset+used+uint32(size)],
-			deltaCompressed: deltaCompressedBytes})
+			baseCompressed:   p.data[offset+used : offset+used+uint32(size)],
+			deltasCompressed: deltasCompressed})
 
 	} else {
 		br := bytes.NewReader(p.data[offset+used : offset+used+uint32(size)])
