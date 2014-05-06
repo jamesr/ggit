@@ -19,16 +19,12 @@ func readAllBytes(compressed []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf := make([]byte, 4096)
-	n := 0
-	dest := []byte(nil)
-	for ; err == nil; n, err = r.Read(buf) {
-		dest = append(dest, buf[:n]...)
-	}
-	if err != io.EOF {
+	b := bytes.NewBuffer(nil)
+	_, err = io.Copy(b, r)
+	if err != nil {
 		return nil, err
 	}
-	return dest, nil
+	return b.Bytes(), nil
 }
 
 func (d *compressedDeltaReader) Read(b []byte) (int, error) {
@@ -109,11 +105,11 @@ func patchDelta(base, delta []byte) ([]byte, error) {
 				i++
 			}
 			if (cmd & 0x20) != 0 {
-				copySize |= int(delta[i] << 8)
+				copySize |= int(delta[i]) << 8
 				i++
 			}
 			if (cmd & 0x40) != 0 {
-				copySize |= int(delta[i] << 16)
+				copySize |= int(delta[i]) << 16
 				i++
 			}
 			if copySize == 0 {

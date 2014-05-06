@@ -9,14 +9,13 @@ import (
 func printCommitChain(hash string) error {
 	c, err := readCommit(hash)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	fmt.Println(hash)
 	if len(c.parent) > 0 {
-		printCommitChain(c.parent[0])
+		err = printCommitChain(c.parent[0])
 	}
-	return nil
+	return err
 }
 
 func revList() {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -112,10 +113,12 @@ func parseCommitObject(o object) (commit, error) {
 		return commit{}, err
 	}
 
-	c.message, err = r.ReadString(0)
-	if err != nil && err != io.EOF {
+	b := bytes.NewBuffer(nil)
+	_, err = io.Copy(b, r)
+	if err != nil {
 		return commit{}, err
 	}
+	c.message = b.String()
 	return c, nil
 }
 

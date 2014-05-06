@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -43,17 +44,12 @@ func dumpPrettyPrint(name string) error {
 }
 
 func dumpPrettyPrintObject(o object) error {
-	b := make([]byte, 4096)
-	for {
-		n, err := o.reader.Read(b)
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		fmt.Print(string(b[:n]))
+	b := bytes.NewBuffer(nil)
+	_, err := io.Copy(b, o.reader)
+	if err != nil {
+		return err
 	}
+	fmt.Print(b.String())
 	return nil
 }
 
@@ -90,7 +86,7 @@ func catFile() {
 		os.Exit(1)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 }

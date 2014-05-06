@@ -95,7 +95,7 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		}
 		// at this point, next size bytes are a delta against base. store it for use in constructing the
 		// object's reader later on
-		deltasCompressed = append(deltasCompressed, p.data[offset+used:offset+used+uint32(size)+50])
+		deltasCompressed = append(deltasCompressed, p.data[offset+used:offset+used+uint32(size)])
 		t, size, used, err = p.parseHeader(offset - deltaOffset)
 		offset -= deltaOffset
 	}
