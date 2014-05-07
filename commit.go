@@ -57,7 +57,8 @@ type commit struct {
 	committer, committerEmail string
 	date                      time.Time
 	zone                      string
-	message                   string
+	messageReader             io.Reader
+	messageStr                *string // lazily populated from reader
 }
 
 // time.ANSIC with s/_2/2/
@@ -67,7 +68,7 @@ func (c commit) String() string {
 	s := "commit " + c.hash + "\n"
 	s += "Author: " + c.author + " <" + c.authorEmail + ">\n"
 	s += "Date:   " + c.date.Format(timeFormat) + " " + c.zone + "\n\n"
-	lines := strings.Split(c.message, "\n")
+	lines := strings.Split(c.message(), "\n")
 	for _, l := range lines {
 		s += "    " + l + "\n"
 	}
@@ -114,20 +115,27 @@ func parseKnownFields(c *commit, r io.Reader, size int) error {
 
 func parseCommitObject(o object) (commit, error) {
 	c := commit{}
-	r := o.reader
 
-	err := parseKnownFields(&c, r, int(o.size))
+	err := parseKnownFields(&c, o.reader, int(o.size))
 	if err != nil {
 		return commit{}, fmt.Errorf("parsing known fields %v", err)
 	}
 
-	b := bytes.NewBuffer(nil)
-	_, err = io.Copy(b, r)
-	if err != nil {
-		return commit{}, err
-	}
-	c.message = b.String()
+	c.messageReader = o.reader
 	return c, nil
+}
+
+func (c *commit) message() string {
+	if c.messageStr == nil {
+		b := bytes.NewBuffer(nil) // TODO: size this buffer?
+		_, err := io.Copy(b, c.messageReader)
+		if err != nil {
+			panic(err)
+		}
+		s := b.String()
+		c.messageStr = &s
+	}
+	return *c.messageStr
 }
 
 func readCommit(hash string) (commit, error) {
