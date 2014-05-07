@@ -44,7 +44,7 @@ type object struct {
 	objectType string
 	size       uint32
 	file       *os.File
-	reader     *bufio.Reader
+	reader     io.Reader
 }
 
 func (o object) Close() {

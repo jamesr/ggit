@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"reflect"
@@ -61,7 +60,7 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 	for i := range commitHash {
 		actual, err := showCommit(commitHash[i])
 		if err != nil {
-			t.Error("error prettying commit: %v case %d\n", err, i)
+			t.Errorf("error prettying commit: %v case %d\n", err, i)
 		}
 
 		if actual != expected[i] {
@@ -82,9 +81,9 @@ Merge git://bogomips.org/git-svn
 * git://bogomips.org/git-svn:
   Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given`
 
-	br := bufio.NewReader(bytes.NewBuffer([]byte(str)))
+	r := bytes.NewBuffer([]byte(str))
 	c := commit{}
-	err := parseKnownFields(&c, br)
+	err := parseKnownFields(&c, r, len(str))
 	if err != nil {
 		t.Error(err)
 	}

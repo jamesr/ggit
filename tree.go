@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ func parseTreeEntries(tree object) ([]treeEntry, error) {
 	entries := make([]treeEntry, 0)
 	for {
 		entry := treeEntry{}
-		r := tree.reader
+		r := bufio.NewReader(tree.reader)
 		mode, err := r.ReadString(' ')
 		if err == io.EOF {
 			break

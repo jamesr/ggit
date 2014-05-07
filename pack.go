@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
@@ -109,9 +108,9 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 	}
 	o := object{objectType: objectTypeStrings[t], size: uint32(size), file: nil}
 	if len(deltasCompressed) != 0 {
-		o.reader = bufio.NewReader(&compressedDeltaReader{
+		o.reader = &compressedDeltaReader{
 			baseCompressed:   p.data[offset+used : offset+used+uint32(size)],
-			deltasCompressed: deltasCompressed})
+			deltasCompressed: deltasCompressed}
 
 	} else {
 		br := bytes.NewReader(p.data[offset+used : offset+used+uint32(size)])
@@ -119,7 +118,7 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		if err != nil {
 			return object{}, err
 		}
-		o.reader = bufio.NewReader(zr)
+		o.reader = zr
 	}
 	return o, nil
 }

@@ -74,9 +74,10 @@ func (c commit) String() string {
 	return s
 }
 
-func parseKnownFields(c *commit, r *bufio.Reader) error {
+func parseKnownFields(c *commit, r io.Reader, size int) error {
+	br := bufio.NewReaderSize(r, int(size))
 	for {
-		line, err := r.ReadString('\n')
+		line, err := br.ReadString('\n')
 		if err != nil {
 			return err
 		}
@@ -85,21 +86,28 @@ func parseKnownFields(c *commit, r *bufio.Reader) error {
 			return nil
 		case strings.HasPrefix(line, "tree "):
 			c.tree, err = parseHashLine(line, "tree")
+			if err != nil {
+				return fmt.Errorf("hash %v", err)
+			}
 		case strings.HasPrefix(line, "parent "):
 			parent, err := parseHashLine(line, "parent")
-			if err == nil {
-				c.parent = append(c.parent, parent)
+			if err != nil {
+				return fmt.Errorf("parent %v", err)
 			}
+			c.parent = append(c.parent, parent)
 		case strings.HasPrefix(line, "author "):
 			c.author, c.authorEmail, c.zone, c.date, err = parsePersonLine(line, "author")
+			if err != nil {
+				return fmt.Errorf("author %v", err)
+			}
 		case strings.HasPrefix(line, "committer "):
 			c.committer, c.committerEmail, _, _, err = parsePersonLine(line, "committer")
+			if err != nil {
+				return fmt.Errorf("committer %v", err)
+			}
 		default:
 			// unknown line, ignore for now
 			// fmt.Fprintf(os.Stderr, "unknown line \"%s\"\n", line)
-		}
-		if err != nil {
-			return err
 		}
 	}
 }
@@ -108,9 +116,9 @@ func parseCommitObject(o object) (commit, error) {
 	c := commit{}
 	r := o.reader
 
-	err := parseKnownFields(&c, r)
+	err := parseKnownFields(&c, r, int(o.size))
 	if err != nil {
-		return commit{}, err
+		return commit{}, fmt.Errorf("parsing known fields %v", err)
 	}
 
 	b := bytes.NewBuffer(nil)
@@ -125,14 +133,14 @@ func parseCommitObject(o object) (commit, error) {
 func readCommit(hash string) (commit, error) {
 	object, err := parseObjectFile(hash)
 	if err != nil {
-		return commit{}, err
+		return commit{}, fmt.Errorf("error parsing object %v", err)
 	}
 	if object.objectType != "commit" {
 		return commit{}, fmt.Errorf("object %s has bad type: %s", hash, object.objectType)
 	}
 	c, err := parseCommitObject(object)
 	if err != nil {
-		return commit{}, err
+		return commit{}, fmt.Errorf("error parsing commit %v", err)
 	}
 	c.hash = hash
 	return c, nil
