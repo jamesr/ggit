@@ -46,9 +46,11 @@ func (p *pack) parsePackFile() error {
 }
 
 func (p *pack) findHash(hash []byte) *object {
-	// TODO: hashes are sorted, should binary search
-	for i := 0; uint32(i) < p.idx.numEntries; i++ {
-		if bytes.Compare(hash, p.idx.hash(i)) == 0 {
+	lo, hi := 0, int(p.idx.numEntries)
+	for hi > lo {
+		i := (hi + lo) / 2
+		cmp := bytes.Compare(hash, p.idx.hash(i))
+		if cmp == 0 {
 			if p.p == nil {
 				err := p.parsePackFile()
 				if err != nil {
@@ -60,6 +62,10 @@ func (p *pack) findHash(hash []byte) *object {
 				panic(err)
 			}
 			return &o
+		} else if cmp > 0 {
+			lo = i
+		} else {
+			hi = i
 		}
 	}
 	return nil
