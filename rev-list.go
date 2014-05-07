@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 func printCommitChain(hash string) error {
@@ -27,9 +28,16 @@ func revList() {
 	}
 	fs := flag.NewFlagSet("rev-list", flag.ExitOnError)
 	fs.Parse(os.Args[2:])
-	err := printCommitChain(fs.Arg(fs.NArg() - 1))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	start := time.Now()
+	count := 0
+	for time.Since(start) < time.Duration(5)*time.Second {
+		err := printCommitChain(fs.Arg(fs.NArg() - 1))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		count++
 	}
+	duration := time.Now().Sub(start).Seconds()
+	fmt.Fprintf(os.Stderr, "%f iter/sec in %.1f seconds\n", float64(count)/duration, duration)
 }
