@@ -49,7 +49,7 @@ func TestLsTree(t *testing.T) {
 
 	actual, err := prettyPrintTree(*tree, false, false, "")
 	if err != nil {
-		t.Error("error prettying tree: %v\n", err)
+		t.Errorf("error prettying tree: %s\n", err)
 	}
 
 	if actual != prettyTree {

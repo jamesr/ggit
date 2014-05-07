@@ -39,8 +39,6 @@ func dumpPrettyPrint(name string) error {
 	} else {
 		return dumpPrettyPrintObject(o)
 	}
-	o.Close()
-	return nil
 }
 
 func dumpPrettyPrintObject(o object) error {
@@ -50,6 +48,7 @@ func dumpPrettyPrintObject(o object) error {
 		return err
 	}
 	fmt.Print(b.String())
+	o.Close()
 	return nil
 }
 

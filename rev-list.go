@@ -56,7 +56,7 @@ func revList(narg int) {
 		return
 	}
 	if *bench {
-		for time.Since(start) < time.Duration(100)*time.Second {
+		for time.Since(start) < time.Duration(5)*time.Second {
 			err := printCommitChain(fs.Arg(fs.NArg() - 1))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
