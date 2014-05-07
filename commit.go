@@ -58,6 +58,7 @@ type commit struct {
 	date                      time.Time
 	zone                      string
 	messageReader             io.Reader
+	messageCloser             io.Closer
 	messageStr                *string // lazily populated from reader
 }
 
@@ -122,6 +123,7 @@ func parseCommitObject(o object) (commit, error) {
 	}
 
 	c.messageReader = o.reader
+	c.messageCloser = o.readCloser
 	return c, nil
 }
 
@@ -129,6 +131,7 @@ func (c *commit) message() string {
 	if c.messageStr == nil {
 		b := bytes.NewBuffer(nil) // TODO: size this buffer?
 		_, err := io.Copy(b, c.messageReader)
+		c.messageCloser.Close()
 		if err != nil {
 			panic(err)
 		}

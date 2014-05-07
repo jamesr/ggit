@@ -24,6 +24,7 @@ func readAllBytes(compressed []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	r.Close()
 	return b.Bytes(), nil
 }
 

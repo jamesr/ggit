@@ -59,7 +59,7 @@ func main() {
 	case cmd == "ls-files":
 		lsFiles()
 	case cmd == "rev-list":
-		revList()
+		revList(flag.NFlag() + 2)
 	default:
 		fmt.Fprintln(os.Stderr, "Unknown command:", cmd)
 	}

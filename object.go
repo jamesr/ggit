@@ -44,6 +44,7 @@ type object struct {
 	objectType string
 	size       uint32
 	file       *os.File
+	readCloser io.Closer
 	reader     io.Reader
 }
 
@@ -53,14 +54,14 @@ func (o object) Close() {
 	}
 }
 
-func parseObject(r io.Reader) (*object, error) {
+func parseObject(r io.ReadCloser) (*object, error) {
 	br := bufio.NewReader(r)
 	t, err := objectType(br)
 	if err != nil {
 		return nil, err
 	}
 	s, err := objectSize(br)
-	return &object{objectType: t, size: s, file: nil, reader: br}, nil
+	return &object{objectType: t, size: s, file: nil, readCloser: r, reader: br}, nil
 }
 
 func nameToPath(object string) string {

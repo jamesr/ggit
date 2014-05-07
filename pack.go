@@ -119,6 +119,7 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 			return object{}, err
 		}
 		o.reader = zr
+		o.readCloser = zr
 	}
 	return o, nil
 }
