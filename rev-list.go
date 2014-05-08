@@ -12,23 +12,42 @@ import (
 	"time"
 )
 
-var chain []string
-
 func printCommitChain(hash string) error {
+	// syscall overhead in Println is surprisingly high, so do the printing itself
+	// in a goroutine
+	const bufSize = 256
+	hashes := make(chan string, bufSize)
+	done := make(chan interface{})
+	go func() {
+		// it's faster to send big strings to Println(), even though it means extra
+		// allocations to form the joined string.
+		buf := make([]string, bufSize)
+		i := 0
+		for h := range hashes {
+			buf[i] = h
+			i++
+			if i == bufSize {
+				fmt.Println(strings.Join(buf, "\n"))
+				i = 0
+			}
+		}
+		fmt.Println(strings.Join(buf[:i], "\n"))
+		done <- nil
+	}()
 	for {
 		c, err := readCommit(hash)
 		if err != nil {
 			return err
 		}
-		chain = append(chain, hash)
+		hashes <- hash
 		if len(c.parent) == 0 {
 			break
 		}
 		hash = c.parent[0]
 		c.discardZlibReader()
 	}
-	// The syscall overhead of fmt.Print* to stdout is pretty high, so join into one string first
-	fmt.Println(strings.Join(chain, "\n"))
+	close(hashes)
+	<-done
 	return nil
 }
 
@@ -41,7 +60,8 @@ func revList(narg int) {
 	}
 	fs := flag.NewFlagSet("rev-list", flag.ExitOnError)
 	memprofile := fs.String("memprofile", "", "write memory profile to file")
-	bench := fs.Bool("bench", false, "loop for 5 seconds and report time taken")
+	bench := fs.Bool("bench", false, "loop for benchtime seconds and report time taken")
+	benchtime := fs.Int("benchtime", 5, "time to loop for (seconds) when benchmarking")
 	fs.Parse(os.Args[narg:])
 	start := time.Now()
 	count := 0
@@ -63,7 +83,7 @@ func revList(narg int) {
 		return
 	}
 	if *bench {
-		for time.Since(start) < time.Duration(30)*time.Second {
+		for time.Since(start) < time.Duration(*benchtime)*time.Second {
 			err := printCommitChain(fs.Arg(fs.NArg() - 1))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
