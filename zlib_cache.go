@@ -5,11 +5,11 @@ import (
 	"io"
 )
 
-var readers = make(chan zlib.ReadCloserReset, 128)
+var zlibReaders = make(chan zlib.ReadCloserReset, 128)
 
 func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
 	select {
-	case zr := <-readers:
+	case zr := <-zlibReaders:
 		err := zr.Reset(r)
 		return zr, err
 	default:
@@ -20,7 +20,7 @@ func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
 func returnZlibReader(zr zlib.ReadCloserReset) {
 	zr.Close()
 	select {
-	case readers <- zr:
+	case zlibReaders <- zr:
 	default:
 		// adding to cache would block
 	}

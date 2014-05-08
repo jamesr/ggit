@@ -16,7 +16,7 @@ func parseTreeEntries(tree object) ([]treeEntry, error) {
 	entries := make([]treeEntry, 0)
 	for {
 		entry := treeEntry{}
-		r := bufio.NewReader(tree.reader)
+		r := bufio.NewReaderSize(tree.reader, 64)
 		mode, err := r.ReadString(' ')
 		if err == io.EOF {
 			break
