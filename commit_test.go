@@ -83,7 +83,7 @@ Merge git://bogomips.org/git-svn
 
 	r := bytes.NewBuffer([]byte(str))
 	c := commit{}
-	err := parseKnownFields(&c, r, len(str))
+	err := parseKnownFields(&c, r)
 	if err != nil {
 		t.Error(err)
 	}

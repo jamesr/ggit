@@ -108,8 +108,8 @@ func (c commit) String() string {
 	return s
 }
 
-func parseKnownFields(c *commit, r io.Reader, size int) error {
-	br := bufio.NewReaderSize(r, size)
+func parseKnownFields(c *commit, r io.Reader) error {
+	br := bufio.NewReaderSize(r, 512)
 	for {
 		line, err := br.ReadString('\n')
 		if err != nil {
@@ -149,7 +149,7 @@ func parseKnownFields(c *commit, r io.Reader, size int) error {
 func parseCommitObject(o object) (commit, error) {
 	c := commit{}
 
-	err := parseKnownFields(&c, o.reader, int(o.size))
+	err := parseKnownFields(&c, o.reader)
 	if err != nil {
 		return commit{}, fmt.Errorf("parsing known fields %v", err)
 	}
