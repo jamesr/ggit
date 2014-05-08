@@ -44,7 +44,7 @@ type object struct {
 	objectType string
 	size       uint32
 	file       *os.File
-	readCloser io.Closer
+	zlibReader zlib.ReadCloserReset
 	reader     io.Reader
 }
 
@@ -54,14 +54,15 @@ func (o object) Close() {
 	}
 }
 
-func parseObject(r io.ReadCloser) (*object, error) {
+func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*object, error) {
 	br := bufio.NewReader(r)
 	t, err := objectType(br)
 	if err != nil {
+		returnZlibReader(zr)
 		return nil, err
 	}
 	s, err := objectSize(br)
-	return &object{objectType: t, size: s, file: nil, readCloser: r, reader: br}, nil
+	return &object{objectType: t, size: s, zlibReader: zr, reader: br}, nil
 }
 
 func nameToPath(object string) string {
@@ -94,12 +95,12 @@ var parseObjectFile = func(name string) (object, error) {
 	if err != nil {
 		return object{}, err
 	}
-	r, err := zlib.NewReader(file)
+	r, err := getZlibReader(file)
 	if err != nil {
 		file.Close()
 		return object{}, err
 	}
-	o, err = parseObject(r)
+	o, err = parseObject(r, r)
 	if err != nil {
 		file.Close()
 		return object{}, err

@@ -42,7 +42,7 @@ func TestLsTree(t *testing.T) {
 	}
 	defer func() { parseObjectFile = origParseObjectFile }()
 
-	tree, err := parseObject(nopCloser{b})
+	tree, err := parseObject(nopCloser{b}, nil)
 	if err != nil {
 		t.Errorf("error parsing object: %v\n", err)
 	}

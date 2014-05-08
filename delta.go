@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"compress/zlib"
 	"errors"
 	"fmt"
 	"io"
@@ -15,16 +14,16 @@ type compressedDeltaReader struct {
 }
 
 func readAllBytes(compressed []byte) ([]byte, error) {
-	r, err := zlib.NewReader(bytes.NewReader(compressed))
+	r, err := getZlibReader(bytes.NewReader(compressed))
 	if err != nil {
 		return nil, err
 	}
+	defer returnZlibReader(r)
 	b := bytes.NewBuffer(nil)
 	_, err = io.Copy(b, r)
 	if err != nil {
 		return nil, err
 	}
-	r.Close()
 	return b.Bytes(), nil
 }
 

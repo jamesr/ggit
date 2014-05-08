@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"compress/zlib"
 	"fmt"
 	"io"
 	"regexp"
@@ -58,7 +59,7 @@ type commit struct {
 	date                      time.Time
 	zone                      string
 	messageReader             io.Reader
-	messageCloser             io.Closer
+	zlibReader                zlib.ReadCloserReset
 	messageStr                *string // lazily populated from reader
 }
 
@@ -123,15 +124,22 @@ func parseCommitObject(o object) (commit, error) {
 	}
 
 	c.messageReader = o.reader
-	c.messageCloser = o.readCloser
+	c.zlibReader = o.zlibReader
 	return c, nil
+}
+
+func (c *commit) discardZlibReader() {
+	if c.zlibReader != nil {
+		returnZlibReader(c.zlibReader)
+		c.zlibReader = nil
+	}
 }
 
 func (c *commit) message() string {
 	if c.messageStr == nil {
 		b := bytes.NewBuffer(nil) // TODO: size this buffer?
 		_, err := io.Copy(b, c.messageReader)
-		c.messageCloser.Close()
+		c.discardZlibReader()
 		if err != nil {
 			panic(err)
 		}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"compress/zlib"
 	"crypto/sha1"
 	"encoding/binary"
 	"errors"
@@ -114,12 +113,12 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 
 	} else {
 		br := bytes.NewReader(p.data[offset+used : offset+used+uint32(size)])
-		zr, err := zlib.NewReader(br)
+		zr, err := getZlibReader(br)
 		if err != nil {
 			return object{}, err
 		}
 		o.reader = zr
-		o.readCloser = zr
+		o.zlibReader = zr
 	}
 	return o, nil
 }

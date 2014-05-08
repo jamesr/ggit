@@ -49,7 +49,7 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 			return object{}, fmt.Errorf("unknown name %s", name)
 		}
 		b := bytes.NewBuffer(commitBytes[idx])
-		o, err := parseObject(nopCloser{b})
+		o, err := parseObject(nopCloser{b}, nil)
 		if err != nil {
 			return object{}, err
 		}

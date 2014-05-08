@@ -23,9 +23,7 @@ func printCommitChain(hash string) error {
 			break
 		}
 		hash = c.parent[0]
-		if c.messageCloser != nil {
-			c.messageCloser.Close()
-		}
+		c.discardZlibReader()
 	}
 	for _, s := range chain {
 		fmt.Println(s)
