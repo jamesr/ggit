@@ -10,21 +10,27 @@ import (
 	"time"
 )
 
+var chain []string
+
 func printCommitChain(hash string) error {
 	for {
 		c, err := readCommit(hash)
 		if err != nil {
 			return err
 		}
-		fmt.Println(hash)
+		chain = append(chain, hash)
 		if len(c.parent) == 0 {
-			return nil
+			break
 		}
 		hash = c.parent[0]
 		if c.messageCloser != nil {
 			c.messageCloser.Close()
 		}
 	}
+	for _, s := range chain {
+		fmt.Println(s)
+	}
+	return nil
 }
 
 func revList(narg int) {
