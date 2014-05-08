@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"time"
 )
 
@@ -25,11 +27,12 @@ func printCommitChain(hash string) error {
 		hash = c.parent[0]
 		c.discardZlibReader()
 	}
-	for _, s := range chain {
-		fmt.Println(s)
-	}
+	// The syscall overhead of fmt.Print* to stdout is pretty high, so join into one string first
+	fmt.Println(strings.Join(chain, "\n"))
 	return nil
 }
+
+var hashRe = regexp.MustCompile("^[a-z0-9]{40}$")
 
 func revList(narg int) {
 	if len(os.Args) < 3 || !hashRe.MatchString(os.Args[len(os.Args)-1]) {
@@ -60,7 +63,7 @@ func revList(narg int) {
 		return
 	}
 	if *bench {
-		for time.Since(start) < time.Duration(5)*time.Second {
+		for time.Since(start) < time.Duration(30)*time.Second {
 			err := printCommitChain(fs.Arg(fs.NArg() - 1))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)

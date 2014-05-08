@@ -4,50 +4,81 @@ import (
 	"bufio"
 	"bytes"
 	"compress/zlib"
+	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
-
-var hashRe = regexp.MustCompile("^[a-z0-9]{40}$")
 
 func parseHashLine(line, leader string) (string, error) {
 	if len(line) != 42+len(leader) {
 		return "", fmt.Errorf("bad commit format: \"%s\"", line)
 	}
 	hash := line[len(leader)+1 : len(line)-1]
-	if !hashRe.MatchString(hash) {
-		return "", fmt.Errorf("bad commit format hash: \"%s\"", line)
+	for _, c := range hash {
+		if c < 'a' && c > 'z' && c < '0' && c > '9' {
+			return "", fmt.Errorf("bad commit format hash: \"%s\"", line)
+		}
 	}
 	return hash, nil
 }
 
+// "whom" SP "name possibly with many spaces" SP "<" email ">" SP timestamp SP zone NL
 func parsePersonLine(line, whom string) (name, email, zone string, t time.Time, err error) {
-	s := strings.Split(line, " ")
-	if len(s) < 5 {
-		err = fmt.Errorf("bad format, insufficient parts for %s line in \"%s\"", whom, line)
+	// work from the end since arbitrary spaces only appear in second entry
+	i := 0
+	for i = len(line) - 1; i >= 0; i-- {
+		if line[i] == ' ' {
+			zone = line[i+1 : len(line)-1]
+			break
+		}
+	}
+	if i <= 9 {
+		err = fmt.Errorf("bad person line %s", line)
 		return
 	}
-	if s[0] != whom {
-		err = fmt.Errorf("bad format, got %s but expected %s", s[0], whom)
+	lastSpace := i
+	for i--; i >= 0; i-- {
+		if line[i] == ' ' {
+			timeSec := int64(0)
+			timeSec, err = strconv.ParseInt(line[i+1:lastSpace], 10, 32)
+			if err != nil {
+				return
+			}
+			t = time.Unix(timeSec, 0)
+			break
+		}
 	}
-	timeSec, err := strconv.ParseInt(s[len(s)-2], 10, 64)
-	if err != nil {
+	if i <= 7 {
+		err = fmt.Errorf("bad person line %s", line)
 		return
 	}
-	maybeEmail := s[len(s)-3]
-	if maybeEmail[0] != '<' || maybeEmail[len(maybeEmail)-1] != '>' {
-		err = fmt.Errorf("bad email %s", maybeEmail)
+	lastSpace = i
+	for i--; i >= 0; i-- {
+		if line[i] == ' ' {
+			maybeEmail := line[i+1 : lastSpace]
+			if maybeEmail[0] != '<' || maybeEmail[len(maybeEmail)-1] != '>' {
+				err = fmt.Errorf("bad email %s", maybeEmail)
+				return
+			}
+			email = maybeEmail[1 : len(maybeEmail)-1]
+			break
+		}
+	}
+	if i <= 3 {
+		err = fmt.Errorf("bad person line %s", line)
 		return
 	}
-	name = strings.Join(s[1:len(s)-3], " ")
-	email = maybeEmail[1 : len(maybeEmail)-1]
-	t = time.Unix(timeSec, 0)
-	zone = s[len(s)-1]
-	zone = zone[:len(zone)-1] // zone has trailing \n
+	lastSpace = i
+	for i = 0; i < len(whom); i++ {
+		if line[i] != whom[i] {
+			err = errors.New("bad person format")
+			return
+		}
+	}
+	name = line[i+1 : lastSpace]
 	return
 }
 
@@ -78,7 +109,7 @@ func (c commit) String() string {
 }
 
 func parseKnownFields(c *commit, r io.Reader, size int) error {
-	br := bufio.NewReaderSize(r, int(size))
+	br := bufio.NewReaderSize(r, size)
 	for {
 		line, err := br.ReadString('\n')
 		if err != nil {

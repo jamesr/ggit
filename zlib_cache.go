@@ -5,23 +5,23 @@ import (
 	"io"
 )
 
-// TODO: locking, or use a channel?
-var readers []zlib.ReadCloserReset
+var readers = make(chan zlib.ReadCloserReset, 128)
 
 func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
-	if len(readers) > 0 {
-		zr := readers[len(readers)-1]
+	select {
+	case zr := <-readers:
 		err := zr.Reset(r)
-		readers = readers[:len(readers)-1]
 		return zr, err
+	default:
+		return zlib.NewReader(r)
 	}
-	return zlib.NewReader(r)
 }
 
 func returnZlibReader(zr zlib.ReadCloserReset) {
 	zr.Close()
-	readers = append(readers, zr)
-	if zr == nil {
-		panic("oh shit")
+	select {
+	case readers <- zr:
+	default:
+		// adding to cache would block
 	}
 }

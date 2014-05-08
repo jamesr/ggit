@@ -102,3 +102,15 @@ Merge git://bogomips.org/git-svn
 		t.Errorf("does not match %v", c)
 	}
 }
+
+func BenchmarkParsePersonLine(b *testing.B) {
+	lines := []string{"author Junio C Hamano <gitster@pobox.com> 1398106469 -0700",
+		"author Elia Pinto <gitter.spiros@gmail.com> 1397669398 -0700",
+		"committer Linus Torvalds <torvalds@ppc970.osdl.org> 1112976998 -0700"}
+	whom := []string{"author", "author", "committer"}
+	for i := 0; i < b.N; i++ {
+		for j := range lines {
+			parsePersonLine(lines[j], whom[j])
+		}
+	}
+}
