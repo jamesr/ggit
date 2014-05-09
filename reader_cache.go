@@ -11,6 +11,10 @@ import (
 	"io"
 )
 
+// zlib.ReadCloserReset is a proposed addition to the go std library that might
+// appear (in almost certainly a cleaner form) in go 1.4, but doesn't exist today.
+// To build this code against 1.3 change this to an io.ReadCloser and change the
+// zr.Reset(r) line to allocate a new zlib reader.
 var zlibReaders = make(chan zlib.ReadCloserReset, 128)
 
 func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
