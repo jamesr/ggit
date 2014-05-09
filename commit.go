@@ -89,7 +89,7 @@ type commit struct {
 	committer, committerEmail string
 	date                      time.Time
 	zone                      string
-	messageReader             io.Reader
+	messageReader             *bufio.Reader
 	zlibReader                zlib.ReadCloserReset
 	messageStr                *string // lazily populated from reader
 }
@@ -109,14 +109,15 @@ func (c commit) String() string {
 }
 
 func parseKnownFields(c *commit, r io.Reader) error {
-	br := bufio.NewReaderSize(r, 512)
+	br := getBufioReader(r)
 	for {
 		line, err := br.ReadString('\n')
 		if err != nil {
-			return err
+			return fmt.Errorf("ReadString err %v", err)
 		}
 		switch {
 		case line == "\n":
+			c.messageReader = br
 			return nil
 		case strings.HasPrefix(line, "tree "):
 			c.tree, err = parseHashLine(line, "tree")
@@ -154,12 +155,15 @@ func parseCommitObject(o object) (commit, error) {
 		return commit{}, fmt.Errorf("parsing known fields %v", err)
 	}
 
-	c.messageReader = o.reader
 	c.zlibReader = o.zlibReader
 	return c, nil
 }
 
-func (c *commit) discardZlibReader() {
+func (c *commit) Close() {
+	if c.messageReader != nil {
+		returnBufioReader(c.messageReader)
+		c.messageReader = nil
+	}
 	if c.zlibReader != nil {
 		returnZlibReader(c.zlibReader)
 		c.zlibReader = nil
@@ -170,10 +174,10 @@ func (c *commit) message() string {
 	if c.messageStr == nil {
 		b := bytes.NewBuffer(nil) // TODO: size this buffer?
 		_, err := io.Copy(b, c.messageReader)
-		c.discardZlibReader()
 		if err != nil {
 			panic(err)
 		}
+		c.Close()
 		s := b.String()
 		c.messageStr = &s
 	}

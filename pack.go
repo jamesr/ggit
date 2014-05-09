@@ -123,6 +123,8 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 	return o, nil
 }
 
+var verifyPackChecksum = false
+
 func parsePackIndexFile(data []byte) (packIndexFile, error) {
 	const magic = "\377tOc"
 	idx := packIndexFile{}
@@ -133,9 +135,11 @@ func parsePackIndexFile(data []byte) (packIndexFile, error) {
 	if version != 2 {
 		return idx, fmt.Errorf("unsupported index format %d", version)
 	}
-	checksum := sha1.Sum(data[:len(data)-sha1.Size])
-	if bytes.Compare(checksum[:], data[len(data)-sha1.Size:]) != 0 {
-		return idx, fmt.Errorf("bad checksum: %x", checksum)
+	if verifyPackChecksum {
+		checksum := sha1.Sum(data[:len(data)-sha1.Size])
+		if bytes.Compare(checksum[:], data[len(data)-sha1.Size:]) != 0 {
+			return idx, fmt.Errorf("bad checksum: %x", checksum)
+		}
 	}
 
 	entriesPerByte := make([]uint32, 256)

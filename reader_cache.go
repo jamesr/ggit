@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"compress/zlib"
 	"io"
 )
@@ -23,5 +24,24 @@ func returnZlibReader(zr zlib.ReadCloserReset) {
 	case zlibReaders <- zr:
 	default:
 		// adding to cache would block
+	}
+}
+
+var bufioReaders = make(chan *bufio.Reader, 128)
+
+func getBufioReader(r io.Reader) *bufio.Reader {
+	select {
+	case br := <-bufioReaders:
+		br.Reset(r)
+		return br
+	default:
+		return bufio.NewReaderSize(r, 512)
+	}
+}
+
+func returnBufioReader(br *bufio.Reader) {
+	select {
+	case bufioReaders <- br:
+	default:
 	}
 }

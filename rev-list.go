@@ -44,7 +44,7 @@ func printCommitChain(hash string) error {
 			break
 		}
 		hash = c.parent[0]
-		c.discardZlibReader()
+		c.Close()
 	}
 	close(hashes)
 	<-done

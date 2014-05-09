@@ -50,7 +50,7 @@ func (p *pack) findHash(hash []byte) *object {
 	// evenly distributed we could do some newtonion something and perhaps do better.
 	lo, hi := 0, int(p.idx.numEntries)
 	for hi > lo {
-		i := (hi + lo) / 2
+		i := lo + (hi-lo)/2
 		cmp := bytes.Compare(hash, p.idx.hash(i))
 		if cmp == 0 {
 			if p.p == nil {
@@ -65,7 +65,7 @@ func (p *pack) findHash(hash []byte) *object {
 			}
 			return &o
 		} else if cmp > 0 {
-			lo = i
+			lo = i + 1
 		} else {
 			hi = i
 		}
