@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"crypto/sha1"
@@ -15,7 +15,7 @@ import (
 
 type entryTestCase struct {
 	data     []byte
-	e        entry
+	e        Entry
 	length   uint32
 	hasError bool
 }
@@ -25,34 +25,34 @@ func TestParseEntry(t *testing.T) {
 
 	good := entryTestCase{
 		data:     make([]byte, 80),
-		e:        entry{},
+		e:        Entry{},
 		length:   80,
 		hasError: false}
-	good.e.ctime = time.Unix(1, 2)
+	good.e.Ctime = time.Unix(1, 2)
 	copy(good.data[0:8], []byte{0, 0, 0, 1, 0, 0, 0, 2})
-	good.e.mtime = time.Unix(3, 4)
+	good.e.Mtime = time.Unix(3, 4)
 	copy(good.data[8:16], []byte{0, 0, 0, 3, 0, 0, 0, 4})
-	good.e.dev = 5
+	good.e.Dev = 5
 	copy(good.data[16:20], []byte{0, 0, 0, 5})
-	good.e.ino = 6
+	good.e.Ino = 6
 	copy(good.data[20:24], []byte{0, 0, 0, 6})
 	// high 4 bits 1000 (regular file), low 9 bits 0644
-	good.e.mode = 0x8000<<16 | 0x01a4
-	binary.BigEndian.PutUint32(good.data[24:28], good.e.mode)
-	good.e.uid = 7
+	good.e.Mode = 0x8000<<16 | 0x01a4
+	binary.BigEndian.PutUint32(good.data[24:28], good.e.Mode)
+	good.e.Uid = 7
 	copy(good.data[28:32], []byte{0, 0, 0, 7})
-	good.e.gid = 8
+	good.e.Gid = 8
 	copy(good.data[32:36], []byte{0, 0, 0, 8})
-	good.e.size = 9
+	good.e.Size = 9
 	copy(good.data[36:40], []byte{0, 0, 0, 9})
 	emptyHash := sha1.Sum(make([]byte, 0))
-	copy(good.e.hash[:], emptyHash[:])
+	copy(good.e.Hash[:], emptyHash[:])
 	copy(good.data[40:60], emptyHash[:])
 	// high bit 1 for assume-valid, rest 0
-	good.e.flags = 0x80
+	good.e.Flags = 0x80
 	copy(good.data[60:62], []byte{0, 0x80})
-	good.e.path = []byte("foo/bar/file.txt")
-	copy(good.data[62:78], []byte(good.e.path))
+	good.e.Path = []byte("foo/bar/file.txt")
+	copy(good.data[62:78], []byte(good.e.Path))
 	// Rest of the slice is NUL, so no need to set terminator or padding.
 
 	// Same as good, but the length divides 8 evenly without any padding.
@@ -62,12 +62,12 @@ func TestParseEntry(t *testing.T) {
 		length:   good.length,
 		hasError: false}
 	copy(goodLengthDivides8.data, good.data)
-	goodLengthDivides8.e.path = []byte(string(good.e.path) + "2")
+	goodLengthDivides8.e.Path = []byte(string(good.e.Path) + "2")
 	goodLengthDivides8.data[78] = '2'
 	goodLengthDivides8.length = 80
 
 	cases := []entryTestCase{
-		{tooShort, entry{}, 0, true},
+		{tooShort, Entry{}, 0, true},
 		good, goodLengthDivides8}
 
 	for i := range cases {

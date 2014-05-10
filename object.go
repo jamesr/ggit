@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bufio"
@@ -45,21 +45,21 @@ func objectSize(buf *bufio.Reader) (uint32, error) {
 	return uint32(size), err
 }
 
-type object struct {
-	objectType string
-	size       uint32
+type Object struct {
+	ObjectType string
+	Size       uint32
 	file       *os.File
 	zlibReader zlib.ReadCloserReset
-	reader     io.Reader
+	Reader     io.Reader
 }
 
-func (o object) Close() {
+func (o Object) Close() {
 	if o.file != nil {
 		o.file.Close()
 	}
 }
 
-func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*object, error) {
+func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*Object, error) {
 	br := bufio.NewReader(r)
 	t, err := objectType(br)
 	if err != nil {
@@ -67,15 +67,15 @@ func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*object, error) {
 		return nil, err
 	}
 	s, err := objectSize(br)
-	return &object{objectType: t, size: s, zlibReader: zr, reader: br}, nil
+	return &Object{ObjectType: t, Size: s, zlibReader: zr, Reader: br}, nil
 }
 
-func nameToPath(object string) string {
+func NameToPath(object string) string {
 	return ".git/objects/" + object[:2] + "/" + object[2:]
 }
 
 func openObjectFile(name string) (*os.File, error) {
-	path := nameToPath(name)
+	path := NameToPath(name)
 	return os.Open(path)
 }
 
@@ -88,27 +88,27 @@ func nameToHash(name string) []byte {
 	return h
 }
 
-var parseObjectFile = func(name string) (object, error) {
+var ParseObjectFile = func(name string) (Object, error) {
 	o, err := findHash(nameToHash(name))
 	if err != nil {
-		return object{}, err
+		return Object{}, err
 	}
 	if o != nil {
 		return *o, nil
 	}
 	file, err := openObjectFile(name)
 	if err != nil {
-		return object{}, err
+		return Object{}, err
 	}
 	r, err := getZlibReader(file)
 	if err != nil {
 		file.Close()
-		return object{}, err
+		return Object{}, err
 	}
 	o, err = parseObject(r, r)
 	if err != nil {
 		file.Close()
-		return object{}, err
+		return Object{}, err
 	}
 	o.file = file
 	return *o, nil

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bytes"
@@ -42,8 +42,8 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
     
 `}
 
-	origParseObjectFile := parseObjectFile
-	parseObjectFile = func(name string) (object, error) {
+	origParseObjectFile := ParseObjectFile
+	ParseObjectFile = func(name string) (Object, error) {
 		idx := -1
 		for i := range commitHash {
 			if name == commitHash[i] {
@@ -51,16 +51,16 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 			}
 		}
 		if idx == -1 {
-			return object{}, fmt.Errorf("unknown name %s", name)
+			return Object{}, fmt.Errorf("unknown name %s", name)
 		}
 		b := bytes.NewBuffer(commitBytes[idx])
 		o, err := parseObject(nopCloser{b}, nil)
 		if err != nil {
-			return object{}, err
+			return Object{}, err
 		}
 		return *o, err
 	}
-	defer func() { parseObjectFile = origParseObjectFile }()
+	defer func() { ParseObjectFile = origParseObjectFile }()
 
 	for i := range commitHash {
 		actual, err := showCommit(commitHash[i])
@@ -99,7 +99,7 @@ Merge git://bogomips.org/git-svn
 
 	expected := commit{
 		tree: "1c5641428ab2aad75d9874abedb821fd9ad01205",
-		parent: []string{"8fe3ee67adcd2ee9372c7044fa311ce55eb285b4",
+		Parent: []string{"8fe3ee67adcd2ee9372c7044fa311ce55eb285b4",
 			"fe191fcaa58cb785c804465a0da9bcba9fd9e822"},
 		author:         "Junio C Hamano",
 		authorEmail:    "gitster@pobox.com",

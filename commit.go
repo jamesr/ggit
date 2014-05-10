@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bufio"
@@ -89,7 +89,7 @@ func parsePersonLine(line, whom string) (name, email, zone string, t time.Time, 
 
 type commit struct {
 	hash, tree                string
-	parent                    []string
+	Parent                    []string
 	author, authorEmail       string
 	committer, committerEmail string
 	date                      time.Time
@@ -134,7 +134,7 @@ func parseKnownFields(c *commit, r io.Reader) error {
 			if err != nil {
 				return fmt.Errorf("parent %v", err)
 			}
-			c.parent = append(c.parent, parent)
+			c.Parent = append(c.Parent, parent)
 		case strings.HasPrefix(line, "author "):
 			c.author, c.authorEmail, c.zone, c.date, err = parsePersonLine(line, "author")
 			if err != nil {
@@ -152,10 +152,10 @@ func parseKnownFields(c *commit, r io.Reader) error {
 	}
 }
 
-func parseCommitObject(o object) (commit, error) {
+func parseCommitObject(o Object) (commit, error) {
 	c := commit{}
 
-	err := parseKnownFields(&c, o.reader)
+	err := parseKnownFields(&c, o.Reader)
 	if err != nil {
 		return commit{}, fmt.Errorf("parsing known fields %v", err)
 	}
@@ -189,13 +189,13 @@ func (c *commit) message() string {
 	return *c.messageStr
 }
 
-func readCommit(hash string) (commit, error) {
-	object, err := parseObjectFile(hash)
+func ReadCommit(hash string) (commit, error) {
+	object, err := ParseObjectFile(hash)
 	if err != nil {
 		return commit{}, fmt.Errorf("error parsing object %v", err)
 	}
-	if object.objectType != "commit" {
-		return commit{}, fmt.Errorf("object %s has bad type: %s", hash, object.objectType)
+	if object.ObjectType != "commit" {
+		return commit{}, fmt.Errorf("object %s has bad type: %s", hash, object.ObjectType)
 	}
 	c, err := parseCommitObject(object)
 	if err != nil {
@@ -206,7 +206,7 @@ func readCommit(hash string) (commit, error) {
 }
 
 func showCommit(hash string) (string, error) {
-	c, err := readCommit(hash)
+	c, err := ReadCommit(hash)
 	if err != nil {
 		return "", err
 	}

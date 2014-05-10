@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bytes"
@@ -80,10 +80,10 @@ func parsePackFile(data []byte) (packFile, error) {
 	return packFile{numObjects: numObjects, data: data}, nil
 }
 
-func (p packFile) extractObject(offset uint32) (object, error) {
+func (p packFile) extractObject(offset uint32) (Object, error) {
 	t, size, used, err := p.parseHeader(offset)
 	if err != nil {
-		return object{}, err
+		return Object{}, err
 	}
 
 	deltasCompressed := [][]byte{}
@@ -98,7 +98,7 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 			deltaOffset = (deltaOffset << 7) + uint32(c&0x7f)
 		}
 		if deltaOffset > offset {
-			return object{}, fmt.Errorf("bad object header delta offset %d %d", deltaOffset, offset)
+			return Object{}, fmt.Errorf("bad object header delta offset %d %d", deltaOffset, offset)
 		}
 		// at this point, next size bytes are a delta against base. store it for use in constructing the
 		// object's reader later on
@@ -108,11 +108,11 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 	}
 
 	if t < OBJ_COMMIT || t > OBJ_BLOB {
-		return object{}, fmt.Errorf("unsupported type %d", t)
+		return Object{}, fmt.Errorf("unsupported type %d", t)
 	}
-	o := object{objectType: objectTypeStrings[t], size: uint32(size), file: nil}
+	o := Object{ObjectType: objectTypeStrings[t], Size: uint32(size), file: nil}
 	if len(deltasCompressed) != 0 {
-		o.reader = &compressedDeltaReader{
+		o.Reader = &compressedDeltaReader{
 			baseCompressed:   p.data[offset+used : offset+used+uint32(size)],
 			deltasCompressed: deltasCompressed}
 
@@ -120,9 +120,9 @@ func (p packFile) extractObject(offset uint32) (object, error) {
 		br := bytes.NewReader(p.data[offset+used : offset+used+uint32(size)])
 		zr, err := getZlibReader(br)
 		if err != nil {
-			return object{}, err
+			return Object{}, err
 		}
-		o.reader = zr
+		o.Reader = zr
 		o.zlibReader = zr
 	}
 	return o, nil

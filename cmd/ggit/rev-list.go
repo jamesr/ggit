@@ -15,6 +15,8 @@ import (
 	"runtime/pprof"
 	"strings"
 	"time"
+
+	"github.com/jamesr/ggit"
 )
 
 func printCommitChain(hash string) error {
@@ -40,15 +42,15 @@ func printCommitChain(hash string) error {
 		done <- nil
 	}()
 	for {
-		c, err := readCommit(hash)
+		c, err := ggit.ReadCommit(hash)
 		if err != nil {
 			return err
 		}
 		hashes <- hash
-		if len(c.parent) == 0 {
+		if len(c.Parent) == 0 {
 			break
 		}
-		hash = c.parent[0]
+		hash = c.Parent[0]
 		c.Close()
 	}
 	close(hashes)

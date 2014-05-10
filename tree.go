@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bufio"
@@ -17,11 +17,11 @@ type treeEntry struct {
 	hash       [20]byte
 }
 
-func parseTreeEntries(tree object) ([]treeEntry, error) {
+func parseTreeEntries(tree Object) ([]treeEntry, error) {
 	entries := make([]treeEntry, 0)
 	for {
 		entry := treeEntry{}
-		r := bufio.NewReaderSize(tree.reader, 64)
+		r := bufio.NewReaderSize(tree.Reader, 64)
 		mode, err := r.ReadString(' ')
 		if err == io.EOF {
 			break
@@ -53,7 +53,7 @@ func parseTreeEntries(tree object) ([]treeEntry, error) {
 	return entries, nil
 }
 
-func prettyPrintTree(tree object, recurse, dirsOnly bool, dir string) (string, error) {
+func PrettyPrintTree(tree Object, recurse, dirsOnly bool, dir string) (string, error) {
 	entries, err := parseTreeEntries(tree)
 	if err != nil {
 		return "", err
@@ -66,16 +66,16 @@ func prettyPrintTree(tree object, recurse, dirsOnly bool, dir string) (string, e
 		s += line
 	}
 	for _, e := range entries {
-		o, err := parseObjectFile(fmt.Sprintf("%x", e.hash))
+		o, err := ParseObjectFile(fmt.Sprintf("%x", e.hash))
 		if err != nil {
 			return "", fmt.Errorf("error on entry %v %x: %v", e, e.hash, err)
 		}
-		isTree := o.objectType == "tree"
+		isTree := o.ObjectType == "tree"
 		if (!recurse && !dirsOnly) || (dirsOnly && isTree) || (recurse && !isTree && !dirsOnly) {
-			add(fmt.Sprintf("%s %s %x\t%s%s", e.mode, o.objectType, e.hash, dir, e.name))
+			add(fmt.Sprintf("%s %s %x\t%s%s", e.mode, o.ObjectType, e.hash, dir, e.name))
 		}
 		if recurse && isTree {
-			subTree, err := prettyPrintTree(o, recurse, dirsOnly, dir+e.name+"/")
+			subTree, err := PrettyPrintTree(o, recurse, dirsOnly, dir+e.name+"/")
 			if err != nil {
 				return "", err
 			}

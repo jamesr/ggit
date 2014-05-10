@@ -12,11 +12,13 @@ import (
 	"os"
 	"runtime/pprof"
 	"syscall"
+
+	"github.com/jamesr/ggit"
 )
 
-func dumpIndex() {
-	filename := ".git/index"
-	version, entries, extensions, data, err := mapIndexFile(filename)
+func dumpIndex(filename string) {
+	//filename := ".git/index"
+	version, entries, extensions, data, err := ggit.MapIndexFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not parse index file: %v\n", err)
 		os.Exit(1)
@@ -24,10 +26,10 @@ func dumpIndex() {
 	fmt.Printf("version %d entries %d extensions %d\n", version, len(entries), len(extensions))
 	for i := range entries {
 		fmt.Printf("entry %d: %v\n", i, entries[i])
-		fmt.Printf("%s %x\n", string(entries[i].path), entries[i].hash)
+		fmt.Printf("%s %x\n", string(entries[i].Path), entries[i].Hash)
 	}
 	for i := range extensions {
-		fmt.Printf("extension %d: %v size %v\n", i, string(extensions[i].signature), extensions[i].size)
+		fmt.Printf("extension %d: %v size %v\n", i, string(extensions[i].Signature), extensions[i].Size)
 	}
 	err = syscall.Munmap(data)
 	if err != nil {
@@ -56,7 +58,7 @@ func main() {
 	cmd := flag.Arg(0)
 	switch {
 	case cmd == "dump-index":
-		dumpIndex()
+		dumpIndex(flag.Arg(flag.NFlag() + 1))
 	case cmd == "cat-file":
 		catFile()
 	case cmd == "ls-tree":

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bytes"
@@ -26,8 +26,8 @@ func TestLsTree(t *testing.T) {
 
 	b := bytes.NewBuffer(treeBytes)
 
-	origParseObjectFile := parseObjectFile
-	parseObjectFile = func(name string) (object, error) {
+	origParseObjectFile := ParseObjectFile
+	ParseObjectFile = func(name string) (Object, error) {
 		objectToType := map[string]string{
 			"8baef1b4abc478178b004d62031cf7fe6db6f903": "blob",
 			"40c5db63e2833f21092ffb06a26209df534e91c9": "tree",
@@ -36,23 +36,23 @@ func TestLsTree(t *testing.T) {
 		}
 		t := objectToType[name]
 		if t == "" {
-			return object{}, fmt.Errorf("no such object %s", name)
+			return Object{}, fmt.Errorf("no such object %s", name)
 		}
-		return object{
-			objectType: t,
-			size:       1,
+		return Object{
+			ObjectType: t,
+			Size:       1,
 			file:       nil,
-			reader:     nil,
+			Reader:     nil,
 		}, nil
 	}
-	defer func() { parseObjectFile = origParseObjectFile }()
+	defer func() { ParseObjectFile = origParseObjectFile }()
 
 	tree, err := parseObject(nopCloser{b}, nil)
 	if err != nil {
 		t.Errorf("error parsing object: %v\n", err)
 	}
 
-	actual, err := prettyPrintTree(*tree, false, false, "")
+	actual, err := PrettyPrintTree(*tree, false, false, "")
 	if err != nil {
 		t.Errorf("error prettying tree: %s\n", err)
 	}

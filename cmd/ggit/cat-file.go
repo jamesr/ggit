@@ -11,33 +11,35 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/jamesr/ggit"
 )
 
 func dumpObjectType(name string) error {
-	o, err := parseObjectFile(name)
+	o, err := ggit.ParseObjectFile(name)
 	if err != nil {
 		return err
 	}
-	fmt.Println(o.objectType)
+	fmt.Println(o.ObjectType)
 	o.Close()
 	return nil
 }
 
 func dumpObjectSize(name string) error {
-	o, err := parseObjectFile(name)
+	o, err := ggit.ParseObjectFile(name)
 	if err != nil {
 		return err
 	}
-	fmt.Println(o.size)
+	fmt.Println(o.Size)
 	return nil
 }
 
 func dumpPrettyPrint(name string) error {
-	o, err := parseObjectFile(name)
+	o, err := ggit.ParseObjectFile(name)
 	if err != nil {
 		return err
 	}
-	if o.objectType == "tree" {
+	if o.ObjectType == "tree" {
 		recurse, dirsOnly := false, false
 		dumpTree(name, recurse, dirsOnly)
 		return nil
@@ -46,9 +48,9 @@ func dumpPrettyPrint(name string) error {
 	}
 }
 
-func dumpPrettyPrintObject(o object) error {
+func dumpPrettyPrintObject(o ggit.Object) error {
 	b := bytes.NewBuffer(nil)
-	_, err := io.Copy(b, o.reader)
+	_, err := io.Copy(b, o.Reader)
 	if err != nil {
 		return err
 	}
@@ -77,7 +79,7 @@ func catFile() {
 	case sizeOnly:
 		err = dumpObjectSize(name)
 	case existsOnly:
-		path := nameToPath(name)
+		path := ggit.NameToPath(name)
 		file, err := os.Open(path)
 		if err != nil {
 			os.Exit(1)

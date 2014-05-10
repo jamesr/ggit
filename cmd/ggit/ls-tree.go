@@ -9,6 +9,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/jamesr/ggit"
 )
 
 func lsTree() {
@@ -25,13 +27,13 @@ func lsTree() {
 }
 
 func dumpTree(treeish string, r, d bool) {
-	o, err := parseObjectFile(treeish)
+	o, err := ggit.ParseObjectFile(treeish)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading tree-ish %s: %v\n", treeish, err)
 		os.Exit(1)
 	}
 	defer o.Close()
-	s, err := prettyPrintTree(o, r, d, "")
+	s, err := ggit.PrettyPrintTree(o, r, d, "")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error processing tree-ish %s: %v\n", treeish, err)
 		os.Exit(1)

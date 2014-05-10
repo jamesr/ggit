@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package main
+package ggit
 
 import (
 	"bytes"
@@ -50,7 +50,7 @@ func (p *pack) parsePackFile() error {
 	return nil
 }
 
-func (p *pack) findHash(hash []byte) *object {
+func (p *pack) findHash(hash []byte) *Object {
 	// TODO: binary search is fast, but given that these hashes are likely to be very
 	// evenly distributed we could do some newtonion something and perhaps do better.
 	lo, hi := 0, int(p.idx.numEntries)
@@ -80,7 +80,7 @@ func (p *pack) findHash(hash []byte) *object {
 
 var parsedPackFiles = []*pack(nil) // nil means not yet checked, empty means no pack files
 
-func findHash(hash []byte) (*object, error) {
+func findHash(hash []byte) (*Object, error) {
 	if parsedPackFiles == nil {
 		f, err := os.Open(".git/objects/pack")
 		if err != nil {
