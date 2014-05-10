@@ -13,11 +13,11 @@ import (
 	"github.com/jamesr/ggit"
 )
 
-func lsTree() {
+func lsTree(args []string) {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	d := fs.Bool("d", false, "Show only the named tree entry itself, not its children")
 	r := fs.Bool("r", false, "Recurse into sub-trees")
-	fs.Parse(os.Args[2:])
+	fs.Parse(args)
 	treeish := fs.Arg(fs.NArg() - 1)
 	if len(treeish) == 0 {
 		fmt.Fprintln(os.Stderr, "Usage: git ls-file <tree-ish>")

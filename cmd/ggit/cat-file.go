@@ -59,14 +59,14 @@ func dumpPrettyPrintObject(o ggit.Object) error {
 	return nil
 }
 
-func catFile() {
+func catFile(args []string) {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	var typeOnly, sizeOnly, existsOnly, prettyPrint bool
 	fs.BoolVar(&typeOnly, "t", false, "")
 	fs.BoolVar(&sizeOnly, "s", false, "")
 	fs.BoolVar(&existsOnly, "e", false, "")
 	fs.BoolVar(&prettyPrint, "p", false, "")
-	fs.Parse(os.Args[2:])
+	fs.Parse(args)
 	name := fs.Arg(fs.NArg() - 1)
 	if len(name) == 0 {
 		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")

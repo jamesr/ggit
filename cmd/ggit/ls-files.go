@@ -13,10 +13,10 @@ import (
 	"github.com/jamesr/ggit"
 )
 
-func lsFiles() {
+func lsFiles(args []string) {
 	fs := flag.NewFlagSet("ls-files", flag.ExitOnError)
 	stage := fs.Bool("s", false, "Show staged contents' object name, mode bits and stage number in the output")
-	fs.Parse(os.Args[2:])
+	fs.Parse(args)
 	_, entries, _, _, err := ggit.MapIndexFile(".git/index")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
