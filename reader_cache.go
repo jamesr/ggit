@@ -28,7 +28,7 @@ func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
 }
 
 func returnZlibReader(zr zlib.ReadCloserReset) {
-	zr.Close()
+	_ = zr.Close()
 	select {
 	case zlibReaders <- zr:
 	default:

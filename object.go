@@ -55,7 +55,7 @@ type Object struct {
 
 func (o Object) Close() {
 	if o.file != nil {
-		o.file.Close()
+		_ = o.file.Close()
 	}
 }
 
@@ -102,12 +102,12 @@ var ParseObjectFile = func(name string) (Object, error) {
 	}
 	r, err := getZlibReader(file)
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return Object{}, err
 	}
 	o, err = parseObject(r, r)
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return Object{}, err
 	}
 	o.file = file

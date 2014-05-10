@@ -30,11 +30,11 @@ type pack struct {
 
 func (p pack) Close() {
 	if p.p != nil {
-		syscall.Munmap(p.p.data)
-		p.pFile.Close()
+		_ = syscall.Munmap(p.p.data)
+		_ = p.pFile.Close()
 	}
-	syscall.Munmap(p.idx.data)
-	p.idxFile.Close()
+	_ = syscall.Munmap(p.idx.data)
+	_ = p.idxFile.Close()
 }
 
 func (p *pack) parsePackFile() error {
