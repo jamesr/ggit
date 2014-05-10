@@ -12,36 +12,8 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"syscall"
 	"time"
-
-	"github.com/jamesr/ggit"
 )
-
-func dumpIndex(args []string) {
-	filename := ".git/index"
-	if len(args) > 0 {
-		filename = args[0]
-	}
-	version, entries, extensions, data, err := ggit.MapIndexFile(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not parse index file: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("version %d entries %d extensions %d\n", version, len(entries), len(extensions))
-	for i := range entries {
-		fmt.Printf("entry %d: %v\n", i, entries[i])
-		fmt.Printf("%s %x\n", string(entries[i].Path), entries[i].Hash)
-	}
-	for i := range extensions {
-		fmt.Printf("extension %d: %v size %v\n", i, string(extensions[i].Signature), extensions[i].Size)
-	}
-	err = syscall.Munmap(data)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not unmap: %v\n", err)
-		os.Exit(1)
-	}
-}
 
 func runCommand(cmd string, args []string) {
 	switch cmd {
