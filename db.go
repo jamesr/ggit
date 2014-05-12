@@ -8,6 +8,7 @@ package ggit
 import (
 	"bytes"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 )
@@ -56,28 +57,27 @@ func (p *pack) findHash(hash []byte) *Object {
 		lo = p.idx.fanOut[int(hash[0])-1]
 	}
 	hi := p.idx.fanOut[hash[0]]
-	for hi > lo {
-		i := lo + (hi-lo)/2
-		cmp := bytes.Compare(hash, p.idx.hash(i))
-		if cmp == 0 {
-			if p.p == nil {
-				err := p.parsePackFile()
-				if err != nil {
-					panic(err)
-				}
-			}
-			o, err := p.p.extractObject(p.idx.offset(i))
-			if err != nil {
-				panic(err)
-			}
-			return &o
-		} else if cmp > 0 {
-			lo = i + 1
-		} else {
-			hi = i
+	idx := sort.Search(hi-lo, func(i int) bool {
+		return bytes.Compare(hash, p.idx.hash(i+lo)) <= 0
+	}) + lo
+	if idx == hi {
+		return nil
+	}
+	cmp := bytes.Compare(hash, p.idx.hash(idx))
+	if cmp != 0 {
+		return nil
+	}
+	if p.p == nil {
+		err := p.parsePackFile()
+		if err != nil {
+			panic(err)
 		}
 	}
-	return nil
+	o, err := p.p.extractObject(p.idx.offset(idx))
+	if err != nil {
+		panic(err)
+	}
+	return &o
 }
 
 var parsedPackFiles = []*pack(nil) // nil means not yet checked, empty means no pack files

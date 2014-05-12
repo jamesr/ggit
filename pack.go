@@ -20,7 +20,7 @@ type packFile struct {
 
 type packIndexFile struct {
 	fanOut                           []int
-	numEntries                       uint32
+	numEntries                       int
 	hashes, crc32s, smallByteOffsets []byte
 	data                             []byte
 }
@@ -161,6 +161,7 @@ func parsePackIndexFile(data []byte) (packIndexFile, error) {
 
 	p := packIndexFile{
 		fanOut:           fanOut,
+		numEntries:       numEntries,
 		hashes:           data[hashesTableOffset:crc32TableOffset],
 		crc32s:           data[crc32TableOffset:smallByteOffsetTableOffset],
 		smallByteOffsets: data[smallByteOffsetTableOffset:largeByteOffsetTableOffset],
