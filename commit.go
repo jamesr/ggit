@@ -7,11 +7,11 @@ package ggit
 
 import (
 	"bufio"
-	"bytes"
 	"compress/zlib"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -177,13 +177,12 @@ func (c *commit) Close() {
 
 func (c *commit) Message() string {
 	if c.messageStr == nil {
-		b := bytes.NewBuffer(nil) // TODO: size this buffer?
-		_, err := io.Copy(b, c.messageReader)
+		b, err := ioutil.ReadAll(c.messageReader)
 		if err != nil {
 			panic(err)
 		}
 		c.Close()
-		s := b.String()
+		s := string(b)
 		c.messageStr = &s
 	}
 	return *c.messageStr

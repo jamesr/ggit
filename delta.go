@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 type compressedDeltaReader struct {
@@ -24,12 +25,7 @@ func readAllBytes(compressed []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer returnZlibReader(r)
-	b := bytes.NewBuffer(nil)
-	_, err = io.Copy(b, r)
-	if err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
+	return ioutil.ReadAll(r)
 }
 
 func (d *compressedDeltaReader) Read(b []byte) (int, error) {

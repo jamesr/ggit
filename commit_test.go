@@ -8,6 +8,7 @@ package ggit
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"testing"
 	"time"
@@ -54,7 +55,7 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 			return Object{}, fmt.Errorf("unknown name %s", name)
 		}
 		b := bytes.NewBuffer(commitBytes[idx])
-		o, err := parseObject(nopCloser{b}, nil)
+		o, err := parseObject(ioutil.NopCloser(b), nil)
 		if err != nil {
 			return Object{}, err
 		}
@@ -109,7 +110,7 @@ Merge git://bogomips.org/git-svn
 		zone:           "-0700",
 		messageStr:     &s}
 
-	c.message()
+	c.Message()
 
 	if !reflect.DeepEqual(c, expected) {
 		t.Errorf("does not match %v vs %v", c, expected)

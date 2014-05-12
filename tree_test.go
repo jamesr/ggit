@@ -8,6 +8,7 @@ package ggit
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"testing"
 )
 
@@ -47,7 +48,7 @@ func TestLsTree(t *testing.T) {
 	}
 	defer func() { ParseObjectFile = origParseObjectFile }()
 
-	tree, err := parseObject(nopCloser{b}, nil)
+	tree, err := parseObject(ioutil.NopCloser(b), nil)
 	if err != nil {
 		t.Errorf("error parsing object: %v\n", err)
 	}
