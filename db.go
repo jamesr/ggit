@@ -87,6 +87,9 @@ func findHash(hash []byte) (*Object, error) {
 			return nil, err
 		}
 		names, err := f.Readdirnames(0)
+		if err != nil {
+			return nil, err
+		}
 		for _, n := range names {
 			if !strings.HasPrefix(n, "pack-") {
 				continue

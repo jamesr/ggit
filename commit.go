@@ -106,7 +106,7 @@ func (c commit) String() string {
 	s := "commit " + c.hash + "\n"
 	s += "Author: " + c.author + " <" + c.authorEmail + ">\n"
 	s += "Date:   " + c.date.Format(timeFormat) + " " + c.zone + "\n\n"
-	lines := strings.Split(c.message(), "\n")
+	lines := strings.Split(c.Message(), "\n")
 	for _, l := range lines {
 		s += "    " + l + "\n"
 	}
@@ -165,17 +165,17 @@ func parseCommitObject(o Object) (commit, error) {
 }
 
 func (c *commit) Close() {
-	if c.messageReader != nil {
-		returnBufioReader(c.messageReader)
-		c.messageReader = nil
-	}
 	if c.zlibReader != nil {
 		returnZlibReader(c.zlibReader)
 		c.zlibReader = nil
 	}
+	if c.messageReader != nil {
+		returnBufioReader(c.messageReader)
+		c.messageReader = nil
+	}
 }
 
-func (c *commit) message() string {
+func (c *commit) Message() string {
 	if c.messageStr == nil {
 		b := bytes.NewBuffer(nil) // TODO: size this buffer?
 		_, err := io.Copy(b, c.messageReader)

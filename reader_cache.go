@@ -8,7 +8,9 @@ package ggit
 import (
 	"bufio"
 	"compress/zlib"
+	"fmt"
 	"io"
+	"os"
 )
 
 // zlib.ReadCloserReset is a proposed addition to the go std library that might
@@ -28,7 +30,11 @@ func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
 }
 
 func returnZlibReader(zr zlib.ReadCloserReset) {
-	_ = zr.Close()
+	err := zr.Close()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error closing reader %v\n", err)
+		return
+	}
 	select {
 	case zlibReaders <- zr:
 	default:

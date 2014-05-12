@@ -25,7 +25,7 @@ var objectTypeStrings = []string{"", // OBJ_NONE
 func objectType(buf *bufio.Reader) (string, error) {
 	t, err := buf.ReadString(' ')
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read for type %v got \"%s\" on %p", err, t, buf)
 	}
 	t = t[:len(t)-1]
 	for _, u := range objectTypeStrings {
@@ -56,6 +56,7 @@ type Object struct {
 func (o Object) Close() {
 	if o.file != nil {
 		_ = o.file.Close()
+		o.file = nil
 	}
 }
 
@@ -63,10 +64,12 @@ func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*Object, error) {
 	br := bufio.NewReader(r)
 	t, err := objectType(br)
 	if err != nil {
-		returnZlibReader(zr)
-		return nil, err
+		return nil, fmt.Errorf("type %v", err)
 	}
 	s, err := objectSize(br)
+	if err != nil {
+		return nil, fmt.Errorf("size %v", err)
+	}
 	return &Object{ObjectType: t, Size: s, zlibReader: zr, Reader: br}, nil
 }
 
@@ -98,17 +101,17 @@ var ParseObjectFile = func(name string) (Object, error) {
 	}
 	file, err := openObjectFile(name)
 	if err != nil {
-		return Object{}, err
+		return Object{}, fmt.Errorf("open %v", err)
 	}
 	r, err := getZlibReader(file)
 	if err != nil {
 		_ = file.Close()
-		return Object{}, err
+		return Object{}, fmt.Errorf("zlib reader %v", err)
 	}
 	o, err = parseObject(r, r)
 	if err != nil {
 		_ = file.Close()
-		return Object{}, err
+		return Object{}, fmt.Errorf("parse %v", err)
 	}
 	o.file = file
 	return *o, nil

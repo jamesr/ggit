@@ -17,14 +17,16 @@ import (
 
 func runCommand(cmd string, args []string) {
 	switch cmd {
-	case "dump-index":
-		dumpIndex(args)
+	case "branch":
+		branch(args)
 	case "cat-file":
 		catFile(args)
-	case "ls-tree":
-		lsTree(args)
+	case "dump-index":
+		dumpIndex(args)
 	case "ls-files":
 		lsFiles(args)
+	case "ls-tree":
+		lsTree(args)
 	case "rev-list":
 		revList(args)
 	default:
