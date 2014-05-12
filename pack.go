@@ -19,6 +19,7 @@ type packFile struct {
 }
 
 type packIndexFile struct {
+	fanOut                           []int
 	numEntries                       uint32
 	hashes, crc32s, smallByteOffsets []byte
 	data                             []byte
@@ -147,23 +148,19 @@ func parsePackIndexFile(data []byte) (packIndexFile, error) {
 		}
 	}
 
-	entriesPerByte := make([]uint32, 256)
-	numEntries := uint32(0)
+	fanOut := make([]int, 256)
 	for i := 0; i < 256; i++ {
-		fanOut := binary.BigEndian.Uint32(data[8+i*4 : 12+i*4])
-		if fanOut != 0 {
-			entriesPerByte[i] = fanOut - numEntries
-			numEntries = fanOut
-		}
+		fanOut[i] = int(binary.BigEndian.Uint32(data[8+i*4 : 12+i*4]))
 	}
+	numEntries := fanOut[255]
 	const fanOutTableSize = 256 * 4
-	hashesTableOffset := 8 + uint32(fanOutTableSize)
+	hashesTableOffset := 8 + fanOutTableSize
 	crc32TableOffset := hashesTableOffset + numEntries*sha1.Size
 	smallByteOffsetTableOffset := crc32TableOffset + numEntries*4
 	largeByteOffsetTableOffset := smallByteOffsetTableOffset + numEntries*4
 
 	p := packIndexFile{
-		numEntries:       numEntries,
+		fanOut:           fanOut,
 		hashes:           data[hashesTableOffset:crc32TableOffset],
 		crc32s:           data[crc32TableOffset:smallByteOffsetTableOffset],
 		smallByteOffsets: data[smallByteOffsetTableOffset:largeByteOffsetTableOffset],

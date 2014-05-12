@@ -51,9 +51,11 @@ func (p *pack) parsePackFile() error {
 }
 
 func (p *pack) findHash(hash []byte) *Object {
-	// TODO: binary search is fast, but given that these hashes are likely to be very
-	// evenly distributed we could do some newtonion something and perhaps do better.
-	lo, hi := 0, int(p.idx.numEntries)
+	lo := 0
+	if hash[0] > 0 {
+		lo = p.idx.fanOut[int(hash[0])-1]
+	}
+	hi := p.idx.fanOut[hash[0]]
 	for hi > lo {
 		i := lo + (hi-lo)/2
 		cmp := bytes.Compare(hash, p.idx.hash(i))
