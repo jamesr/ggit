@@ -29,6 +29,8 @@ func runCommand(cmd string, args []string) {
 		lsTree(args)
 	case "rev-list":
 		revList(args)
+	case "status":
+		status(args)
 	default:
 		fmt.Fprintln(os.Stderr, "Unknown command:", cmd)
 	}

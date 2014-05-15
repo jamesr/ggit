@@ -88,7 +88,7 @@ func parsePersonLine(line, whom string) (name, email, zone string, t time.Time, 
 }
 
 type commit struct {
-	hash, tree                string
+	hash, Tree                string
 	Parent                    []string
 	author, authorEmail       string
 	committer, committerEmail string
@@ -125,7 +125,7 @@ func parseKnownFields(c *commit, r io.Reader) error {
 			c.messageReader = br
 			return nil
 		case strings.HasPrefix(line, "tree "):
-			c.tree, err = parseHashLine(line, "tree")
+			c.Tree, err = parseHashLine(line, "tree")
 			if err != nil {
 				return fmt.Errorf("hash %v", err)
 			}
