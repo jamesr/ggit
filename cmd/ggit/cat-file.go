@@ -15,8 +15,8 @@ import (
 	"github.com/jamesr/ggit"
 )
 
-func dumpObjectType(name string) error {
-	o, err := ggit.LookupObject(name)
+func dumpObjectType(hash string) error {
+	o, err := ggit.LookupObject(hash)
 	if err != nil {
 		return err
 	}
@@ -25,8 +25,8 @@ func dumpObjectType(name string) error {
 	return nil
 }
 
-func dumpObjectSize(name string) error {
-	o, err := ggit.LookupObject(name)
+func dumpObjectSize(hash string) error {
+	o, err := ggit.LookupObject(hash)
 	if err != nil {
 		return err
 	}
@@ -34,14 +34,14 @@ func dumpObjectSize(name string) error {
 	return nil
 }
 
-func dumpPrettyPrint(name string) error {
-	o, err := ggit.LookupObject(name)
+func dumpPrettyPrint(hash string) error {
+	o, err := ggit.LookupObject(hash)
 	if err != nil {
 		return err
 	}
 	if o.ObjectType == "tree" {
 		recurse, dirsOnly := false, false
-		dumpTree(name, recurse, dirsOnly)
+		dumpTree(hash, recurse, dirsOnly)
 		return nil
 	} else {
 		return dumpPrettyPrintObject(o)
@@ -72,14 +72,15 @@ func catFile(args []string) {
 		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
 		os.Exit(1)
 	}
+	hash := ggit.CommitishToHash(name)
 	err := error(nil)
 	switch {
 	case typeOnly:
-		err = dumpObjectType(name)
+		err = dumpObjectType(hash)
 	case sizeOnly:
-		err = dumpObjectSize(name)
+		err = dumpObjectSize(hash)
 	case existsOnly:
-		path, err := ggit.NameToPath(name)
+		path, err := ggit.NameToPath(hash)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -89,7 +90,7 @@ func catFile(args []string) {
 		}
 		file.Close()
 	case prettyPrint:
-		err = dumpPrettyPrint(name)
+		err = dumpPrettyPrint(hash)
 	default:
 		fmt.Fprintln(os.Stderr, "Usage: ggit cat-file [-t|-s|-e|-p] <object>")
 		os.Exit(1)

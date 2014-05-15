@@ -112,8 +112,7 @@ func hashToBytes(name string) []byte {
 	return h
 }
 
-var LookupObject = func(name string) (Object, error) {
-	hash := CommitishToHash(name)
+var LookupObject = func(hash string) (Object, error) {
 	o, err := findHash(hashToBytes(hash))
 	if err != nil {
 		return Object{}, err

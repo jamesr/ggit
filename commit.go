@@ -88,7 +88,7 @@ func parsePersonLine(line, whom string) (name, email, zone string, t time.Time, 
 }
 
 type commit struct {
-	hash, Tree                string
+	Hash, Tree                string
 	Parent                    []string
 	author, authorEmail       string
 	committer, committerEmail string
@@ -103,7 +103,7 @@ type commit struct {
 const timeFormat = "Mon Jan 2 15:04:05 2006"
 
 func (c commit) String() string {
-	s := "commit " + c.hash + "\n"
+	s := "commit " + c.Hash + "\n"
 	s += "Author: " + c.author + " <" + c.authorEmail + ">\n"
 	s += "Date:   " + c.date.Format(timeFormat) + " " + c.zone + "\n\n"
 	lines := strings.Split(c.Message(), "\n")
@@ -188,7 +188,8 @@ func (c *commit) Message() string {
 	return *c.messageStr
 }
 
-func ReadCommit(hash string) (commit, error) {
+func ReadCommit(committish string) (commit, error) {
+	hash := CommitishToHash(committish)
 	object, err := LookupObject(hash)
 	if err != nil {
 		return commit{}, fmt.Errorf("error parsing object %v", err)
@@ -200,12 +201,12 @@ func ReadCommit(hash string) (commit, error) {
 	if err != nil {
 		return commit{}, fmt.Errorf("error parsing commit %v", err)
 	}
-	c.hash = hash
+	c.Hash = hash
 	return c, nil
 }
 
-func showCommit(hash string) (string, error) {
-	c, err := ReadCommit(hash)
+func showCommit(committish string) (string, error) {
+	c, err := ReadCommit(committish)
 	if err != nil {
 		return "", err
 	}

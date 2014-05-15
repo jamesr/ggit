@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/jamesr/ggit"
@@ -42,7 +41,7 @@ func printCommitChain(hash string) error {
 		if err != nil {
 			return err
 		}
-		hashes <- hash
+		hashes <- c.Hash
 		if len(c.Parent) == 0 {
 			break
 		}
@@ -54,13 +53,11 @@ func printCommitChain(hash string) error {
 	return nil
 }
 
-var hashRe = regexp.MustCompile("^[a-z0-9]{40}$")
-
 func revList(args []string) {
 	fs := flag.NewFlagSet("rev-list", flag.ExitOnError)
 	_ = fs.Bool("first-parent", false, "prints only the first parent")
 	fs.Parse(args)
-	if fs.NArg() < 1 || !hashRe.MatchString(fs.Arg(0)) {
+	if fs.NArg() < 1 {
 		fmt.Fprintf(os.Stderr, "Usage: ggit rev-list <hash>\n")
 		os.Exit(1)
 	}
