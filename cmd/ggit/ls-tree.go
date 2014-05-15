@@ -27,7 +27,7 @@ func lsTree(args []string) {
 }
 
 func dumpTree(treeish string, r, d bool) {
-	o, err := ggit.ParseObjectFile(treeish)
+	o, err := ggit.LookupObject(treeish)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading tree-ish %s: %v\n", treeish, err)
 		os.Exit(1)

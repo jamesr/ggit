@@ -22,16 +22,21 @@ func branch(args []string) {
 	fs.Parse(args)
 
 	// assume --list for now
-	branches, current, err := ggit.ListBranches()
+	branches, err := ggit.ReadBranches()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to fetch branches", err)
 		os.Exit(1)
 	}
+	current, err := ggit.CurrentBranch()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to fetch current branch", err)
+		os.Exit(1)
+	}
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
 	defer tw.Flush()
-	for i, b := range branches {
+	for _, b := range branches {
 		prefix := " "
-		if i == current {
+		if b.Name == current {
 			prefix = "*" // TODO: color code?
 		}
 		if verbose {

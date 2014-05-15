@@ -7,6 +7,7 @@ package ggit
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"os"
 	"sort"
 	"strings"
@@ -52,18 +53,21 @@ func (p *pack) parsePackFile() error {
 }
 
 func (p *pack) findHash(hash []byte) *Object {
+	if len(hash) > sha1.Size {
+		hash = hash[:sha1.Size]
+	}
 	lo := 0
 	if hash[0] > 0 {
 		lo = p.idx.fanOut[int(hash[0])-1]
 	}
 	hi := p.idx.fanOut[hash[0]]
 	idx := sort.Search(hi-lo, func(i int) bool {
-		return bytes.Compare(hash, p.idx.hash(i+lo)) <= 0
+		return bytes.Compare(hash, p.idx.hash(i + lo)[:len(hash)]) <= 0
 	}) + lo
 	if idx == hi {
 		return nil
 	}
-	cmp := bytes.Compare(hash, p.idx.hash(idx))
+	cmp := bytes.Compare(hash, p.idx.hash(idx)[:len(hash)])
 	if cmp != 0 {
 		return nil
 	}

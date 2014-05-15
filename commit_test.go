@@ -43,8 +43,8 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
     
 `}
 
-	origParseObjectFile := ParseObjectFile
-	ParseObjectFile = func(name string) (Object, error) {
+	origLookupObject := LookupObject
+	LookupObject = func(name string) (Object, error) {
 		idx := -1
 		for i := range commitHash {
 			if name == commitHash[i] {
@@ -61,7 +61,7 @@ Date:   Thu Apr 24 13:53:39 2014 -0700
 		}
 		return *o, err
 	}
-	defer func() { ParseObjectFile = origParseObjectFile }()
+	defer func() { LookupObject = origLookupObject }()
 
 	for i := range commitHash {
 		actual, err := showCommit(commitHash[i])

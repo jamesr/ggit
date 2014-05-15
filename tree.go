@@ -66,7 +66,7 @@ func PrettyPrintTree(tree Object, recurse, dirsOnly bool, dir string) (string, e
 		s += line
 	}
 	for _, e := range entries {
-		o, err := ParseObjectFile(fmt.Sprintf("%x", e.hash))
+		o, err := LookupObject(fmt.Sprintf("%x", e.hash))
 		if err != nil {
 			return "", fmt.Errorf("error on entry %v %x: %v", e, e.hash, err)
 		}

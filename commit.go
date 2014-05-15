@@ -189,7 +189,7 @@ func (c *commit) Message() string {
 }
 
 func ReadCommit(hash string) (commit, error) {
-	object, err := ParseObjectFile(hash)
+	object, err := LookupObject(hash)
 	if err != nil {
 		return commit{}, fmt.Errorf("error parsing object %v", err)
 	}

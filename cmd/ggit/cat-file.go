@@ -16,7 +16,7 @@ import (
 )
 
 func dumpObjectType(name string) error {
-	o, err := ggit.ParseObjectFile(name)
+	o, err := ggit.LookupObject(name)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func dumpObjectType(name string) error {
 }
 
 func dumpObjectSize(name string) error {
-	o, err := ggit.ParseObjectFile(name)
+	o, err := ggit.LookupObject(name)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func dumpObjectSize(name string) error {
 }
 
 func dumpPrettyPrint(name string) error {
-	o, err := ggit.ParseObjectFile(name)
+	o, err := ggit.LookupObject(name)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,10 @@ func catFile(args []string) {
 	case sizeOnly:
 		err = dumpObjectSize(name)
 	case existsOnly:
-		path := ggit.NameToPath(name)
+		path, err := ggit.NameToPath(name)
+		if err != nil {
+			os.Exit(1)
+		}
 		file, err := os.Open(path)
 		if err != nil {
 			os.Exit(1)

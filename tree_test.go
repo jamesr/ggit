@@ -27,8 +27,8 @@ func TestLsTree(t *testing.T) {
 
 	b := bytes.NewBuffer(treeBytes)
 
-	origParseObjectFile := ParseObjectFile
-	ParseObjectFile = func(name string) (Object, error) {
+	origLookupObject := LookupObject
+	LookupObject = func(name string) (Object, error) {
 		objectToType := map[string]string{
 			"8baef1b4abc478178b004d62031cf7fe6db6f903": "blob",
 			"40c5db63e2833f21092ffb06a26209df534e91c9": "tree",
@@ -46,7 +46,7 @@ func TestLsTree(t *testing.T) {
 			Reader:     nil,
 		}, nil
 	}
-	defer func() { ParseObjectFile = origParseObjectFile }()
+	defer func() { LookupObject = origLookupObject }()
 
 	tree, err := parseObject(ioutil.NopCloser(b), nil)
 	if err != nil {

@@ -11,8 +11,10 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var objectTypeStrings = []string{"", // OBJ_NONE
@@ -73,33 +75,53 @@ func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*Object, error) {
 	return &Object{ObjectType: t, Size: s, zlibReader: zr, Reader: br}, nil
 }
 
-func NameToPath(object string) string {
-	return ".git/objects/" + object[:2] + "/" + object[2:]
+func NameToPath(object string) (string, error) {
+	base := ".git/objects/" + object[:2] + "/"
+	if len(object) == 2*sha1.Size {
+		return base + object[2:], nil
+	}
+	fi, err := ioutil.ReadDir(base)
+	if err != nil {
+		return "", err
+	}
+	for _, f := range fi {
+		if f.IsDir() {
+			continue
+		}
+		if strings.HasPrefix(f.Name(), object[2:]) {
+			return base + f.Name(), nil
+		}
+	}
+	return "", nil
 }
 
 func openObjectFile(name string) (*os.File, error) {
-	path := NameToPath(name)
+	path, err := NameToPath(name)
+	if err != nil {
+		return nil, err
+	}
 	return os.Open(path)
 }
 
-func nameToHash(name string) []byte {
-	h := make([]byte, sha1.Size)
-	for i := 0; i < sha1.Size; i++ {
+func hashToBytes(name string) []byte {
+	h := make([]byte, len(name)/2)
+	for i := 0; i < len(h); i++ {
 		n, _ := strconv.ParseUint(name[2*i:2*(i+1)], 16, 8)
 		h[i] = byte(n)
 	}
 	return h
 }
 
-var ParseObjectFile = func(name string) (Object, error) {
-	o, err := findHash(nameToHash(name))
+var LookupObject = func(name string) (Object, error) {
+	hash := CommitishToHash(name)
+	o, err := findHash(hashToBytes(hash))
 	if err != nil {
 		return Object{}, err
 	}
 	if o != nil {
 		return *o, nil
 	}
-	file, err := openObjectFile(name)
+	file, err := openObjectFile(hash)
 	if err != nil {
 		return Object{}, fmt.Errorf("open %v", err)
 	}
