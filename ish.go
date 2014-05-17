@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 )
 
-var ReadFile = ioutil.ReadFile
+var readFile = ioutil.ReadFile
 
 func CommitishToHash(committish string) string {
-	if len(committish) == sha1.Size*2 {
+	if len(committish) <= sha1.Size*2 {
 		allHex := true
 		for _, c := range committish {
 			if c < '0' && c > '9' && c < 'a' && c > 'f' {
@@ -23,7 +23,7 @@ func CommitishToHash(committish string) string {
 		}
 	}
 	if committish == "HEAD" {
-		h, err := ReadFile(".git/HEAD")
+		h, err := readFile(".git/HEAD")
 		if err != nil {
 			panic(err)
 		}

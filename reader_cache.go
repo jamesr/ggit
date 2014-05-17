@@ -13,13 +13,18 @@ import (
 	"os"
 )
 
+type readCloserReset interface {
+	io.ReadCloser
+	Reset(io.Reader) error
+}
+
 // zlib.ReadCloserReset is a proposed addition to the go std library that might
 // appear (in almost certainly a cleaner form) in go 1.4, but doesn't exist today.
 // To build this code against 1.3 change this to an io.ReadCloser and change the
 // zr.Reset(r) line to allocate a new zlib reader.
-var zlibReaders = make(chan zlib.ReadCloserReset, 128)
+var zlibReaders = make(chan readCloserReset, 128)
 
-func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
+func getZlibReader(r io.Reader) (io.ReadCloser, error) {
 	select {
 	case zr := <-zlibReaders:
 		err := zr.Reset(r)
@@ -29,16 +34,18 @@ func getZlibReader(r io.Reader) (zlib.ReadCloserReset, error) {
 	}
 }
 
-func returnZlibReader(zr zlib.ReadCloserReset) {
-	err := zr.Close()
+func returnZlibReader(r io.ReadCloser) {
+	err := r.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error closing reader %v\n", err)
 		return
 	}
-	select {
-	case zlibReaders <- zr:
-	default:
-		// adding to cache would block
+	if rcr, ok := r.(readCloserReset); ok {
+		select {
+		case zlibReaders <- rcr:
+		default:
+			// adding to cache would block
+		}
 	}
 }
 

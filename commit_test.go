@@ -99,7 +99,7 @@ Merge git://bogomips.org/git-svn
   Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given`
 
 	expected := commit{
-		tree: "1c5641428ab2aad75d9874abedb821fd9ad01205",
+		Tree: "1c5641428ab2aad75d9874abedb821fd9ad01205",
 		Parent: []string{"8fe3ee67adcd2ee9372c7044fa311ce55eb285b4",
 			"fe191fcaa58cb785c804465a0da9bcba9fd9e822"},
 		author:         "Junio C Hamano",

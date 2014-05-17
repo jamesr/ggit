@@ -7,7 +7,6 @@ package ggit
 
 import (
 	"bufio"
-	"compress/zlib"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -51,7 +50,7 @@ type Object struct {
 	ObjectType string
 	Size       uint32
 	file       *os.File
-	zlibReader zlib.ReadCloserReset
+	zlibReader io.ReadCloser
 	Reader     io.Reader
 }
 
@@ -62,7 +61,7 @@ func (o Object) Close() {
 	}
 }
 
-func parseObject(r io.ReadCloser, zr zlib.ReadCloserReset) (*Object, error) {
+func parseObject(r io.ReadCloser, zr io.ReadCloser) (*Object, error) {
 	br := bufio.NewReader(r)
 	t, err := objectType(br)
 	if err != nil {
@@ -113,6 +112,9 @@ func hashToBytes(name string) []byte {
 }
 
 var LookupObject = func(hash string) (Object, error) {
+	if len(hash) == 0 {
+		return Object{}, fmt.Errorf("invalid hash %s\n", hash)
+	}
 	o, err := findHash(hashToBytes(hash))
 	if err != nil {
 		return Object{}, err

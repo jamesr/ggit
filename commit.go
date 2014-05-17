@@ -7,7 +7,6 @@ package ggit
 
 import (
 	"bufio"
-	"compress/zlib"
 	"errors"
 	"fmt"
 	"io"
@@ -95,7 +94,7 @@ type commit struct {
 	date                      time.Time
 	zone                      string
 	messageReader             *bufio.Reader
-	zlibReader                zlib.ReadCloserReset
+	zlibReader                io.ReadCloser
 	messageStr                *string // lazily populated from reader
 }
 
