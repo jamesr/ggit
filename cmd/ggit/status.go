@@ -1,15 +1,23 @@
+// Copyright 2014 Google Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"syscall"
 
 	"github.com/jamesr/ggit"
 )
 
-func statusWalk(path string, info os.FileInfo, err error, indexEntries []ggit.Entry, modified, untracked *[]string) error {
+func statusWalk(path string, info os.FileInfo, err error, entries []ggit.Entry) error {
 	if info.IsDir() && info.Name() == ".git" {
 		return filepath.SkipDir
 	}
@@ -18,38 +26,114 @@ func statusWalk(path string, info os.FileInfo, err error, indexEntries []ggit.En
 	}
 	tracked := false
 	// TODO: map from path->entry would be faster for the common case of non-moved files
-	for _, e := range indexEntries {
+	for _, e := range entries {
 		if string(e.Path) == path {
 			if info.ModTime() != e.Mtime {
-				*modified = append(*modified, path)
+				modified = append(modified, path)
 			}
 			tracked = true
 			break
 		}
 	}
 	if !tracked {
-		*untracked = append(*untracked, path)
+		untracked = append(untracked, path)
 	}
 	return nil
 }
 
-func findModifiedAndUntracked() (modified, untracked []string, err error) {
+var modified, untracked, ignorePatterns []string
+
+func ignored(filepath string) bool {
+	if filepath == ".git" {
+		return true
+	}
+	for _, p := range ignorePatterns {
+		matched, _ := path.Match(p, filepath)
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
+func parseIgnored(filepath string) {
+	f, err := os.Open(filepath)
+	if err == nil {
+		r := bufio.NewReader(f)
+		for l, err := r.ReadString('\n'); err == nil; l, err = r.ReadString('\n') {
+			if l[0] == '#' {
+				continue
+			}
+			ignorePatterns = append(ignorePatterns, l[:len(l)-1])
+		}
+	}
+
+}
+
+func walkDir(base string, entries []ggit.Entry) error {
+	if ignored(base) {
+		return nil
+	}
+	infos, err := ioutil.ReadDir(base)
+	if err != nil {
+		return err
+	}
+	for _, info := range infos {
+		filepath := path.Clean(base + string(os.PathSeparator) + info.Name())
+		if info.IsDir() {
+			walkDir(filepath, entries)
+		} else {
+			if info.Name() == ".gitignore" {
+				parseIgnored(filepath)
+				continue
+			}
+			if ignored(filepath) {
+				continue
+			}
+			tracked := false
+			// TODO: map from path->entry
+			for _, e := range entries {
+				if string(e.Path) == filepath {
+					tracked = true
+					if info.ModTime() != e.Mtime {
+						modified = append(modified, filepath)
+					}
+					// TODO: ctime, etc
+				}
+			}
+			if !tracked {
+				untracked = append(untracked, filepath)
+			}
+
+		}
+	}
+	return nil
+}
+
+func findModifiedAndUntracked() (err error) {
 	_, entries, _, data, err := ggit.MapIndexFile(".git/index")
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	defer syscall.Munmap(data)
 
+	parseIgnored(".git/info/exclude")
+
 	modified = make([]string, 0)
 	untracked = make([]string, 0)
+	ignorePatterns = make([]string, 0)
 
-	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		return statusWalk(path, info, err, entries, &modified, &untracked)
-	})
+	err = walkDir(".", entries)
+
+	/*
+		err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+			return statusWalk(path, info, err, entries)
+		})
+	*/
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	return modified, untracked, nil
+	return nil
 }
 
 func status(args []string) {
@@ -60,7 +144,7 @@ func status(args []string) {
 	}
 	fmt.Println("On branch", branch)
 	// TODO: staged
-	modified, untracked, err := findModifiedAndUntracked()
+	err = findModifiedAndUntracked()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
